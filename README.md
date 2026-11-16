@@ -2,8 +2,10 @@
 
 把 Kilohearts **Phase Plant** 那套「发生器 / 调制器 / 效果器」模块化思路，做成 **M-VAVE FM-1** 的样子：27 键、TFT 小屏、袖珍机身。不一样的是，这台固件跑在**浏览器**里——打开就能弹，不用刷机，也不会变砖。
 
-- 在线试玩：**<https://kong8la.com/plant1/play/>**
+- 源码：**<https://github.com/kong8la/plant1>**
 - 线上站点：**<https://kong8la.com/plant1/>**（安装页 `/install/`，刷写页 `/flash/`）
+- GitHub Pages 镜像：**<https://kong8la.github.io/plant1/>**
+- 在线试玩：<https://kong8la.com/plant1/play/> · <https://kong8la.github.io/plant1/play/>
 - 本地：`node build.mjs` 后打开 `play/index.html`，或 `npx serve .`
 
 ## 目录
@@ -63,11 +65,15 @@ npx serve .             # 或 python -m http.server
 
 脚本会自己识别 GitHub 用户名、检查仓库、添加 `origin` 并推送，最后打印开 Pages 的地址。
 
-### GitHub Pages（备用）
+### GitHub Pages
 
-1. 建仓库并推送（见下）。
-2. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
-3. 推一个 commit 到 `main`，工作流会自动 `node build.mjs` 并把 `index.html / install / play / flash / assets` 发布出去。
+已开启：<https://kong8la.github.io/plant1/>，源为 **GitHub Actions**（`main` 推送即自动构建发布）。
+
+- 仓库：<https://github.com/kong8la/plant1>
+- 工作流：`.github/workflows/pages.yml`，`node build.mjs` → 只发布 `index.html / install / play / flash / assets`
+- Pages 站点本身已在仓库 Settings → Pages 里开好（`build_type: workflow`），无需再点。
+
+在新机器上从零接管时用 `deploy/push-github.ps1`（需要本机有能推 GitHub 的凭据）。
 
 推送命令：
 

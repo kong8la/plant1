@@ -8,7 +8,7 @@ const dir = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]
 const root = path.join(dir, '..');
 const shotDir = path.join(root, 'shots');
 fs.mkdirSync(shotDir, { recursive: true });
-const BASE = 'https://kong8la.com/plant1/';
+const BASE = (process.env.PLANT1_BASE || 'https://kong8la.com/plant1/').replace(/\/?$/, '/');
 const port = 9355;
 const profile = path.join(root, '.chrome-live');
 try { fs.rmSync(profile, { recursive: true, force: true }); } catch (e) { }
