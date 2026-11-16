@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/
-          cp -r install play assets flash _site/
+          cp -r install play assets flash downloads _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
         with:

@@ -1,0 +1,11 @@
+{
+  "name": "PLANT-1 M0",
+  "version": "0.1.0",
+  "product": "FM-1_9000",
+  "file": "plant1m0.fwsc",
+  "bytes": 616003,
+  "sha256": "ac0182d43da4a69b61dca5f0c55b9ad571cde50a0cf6ec309fc599167f362ff7",
+  "source": "https://github.com/kong8la/plant1-fw",
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/43972303336",
+  "notes": "M0: one FM voice, one ADSR, the 27 keys, a 240x240 screen. Lowest held key wins."
+}

@@ -44,6 +44,12 @@ h1{font-size:clamp(30px,4.4vw,44px);margin:12px 0 12px}
   border:1px dashed #2c3d52;border-radius:11px;padding:22px;text-align:center;cursor:pointer;
   transition:.15s;background:#0a0f16;
 }
+.buildinfo{border:1px solid #1f3b4d;background:linear-gradient(180deg,#0c1a24,#08121a);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.buildinfo-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px}
+.buildinfo-h b{color:#7dd3fc;letter-spacing:.02em}
+.buildinfo-h span{font:10px var(--mono);color:var(--mut);text-align:right}
+.buildinfo-b{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+.buildinfo-b code{font:10px var(--mono);color:#5f7f96;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .drop:hover,.drop.over{border-color:var(--gen);background:#0c1620}
 .drop b{display:block;font-size:14px;margin-bottom:6px}
 .drop span{font-size:12px;color:var(--mut)}
@@ -118,12 +124,22 @@ footer a{color:#7f93a9;text-decoration:none}
       <li><b>会覆盖</b> FM-1 当前的固件、工程、音色和采样。想留的东西先导出来。</li>
       <li>用桌面版 <b>Chrome 或 Edge</b>，USB <b>数据线</b>直连，关掉 DAW / MIDI-OX / 其它升级页（Windows 一次只让一个程序占用端口）。</li>
       <li>写入中途断了<b>不会变砖</b>：设备会停在更新加载器里，插回线再点一次「写入」即可续传。</li>
-      <li>这个页面和包里是什么固件无关——PLANT-1 本身是浏览器固件，不在 <b>.fwsc</b> 体系里（见页尾说明）。</li>
+      <li>上面第二个候选是 <b>PLANT-1 M0</b>：把浏览器版的引擎搬上真机的第一个里程碑，一个 FM 音色 + 包络 + 27 键。</li>
     </ul>
   </section>
 
   <section class="card">
-    <h2><span class="dot"></span>1 · 选择固件包<span class="step">.FWSC</span></h2>
+    <h2><span class="dot"></span>1 · 选择固件包<span class="step">FWSC</span></h2>
+    <div class="buildinfo" id="official">
+      <div class="buildinfo-h">
+        <b>PLANT-1 M0</b>
+        <span id="officialMeta">读取版本信息…</span>
+      </div>
+      <div class="buildinfo-b">
+        <code id="officialSha">—</code>
+        <button class="btn" id="btnOfficial" disabled>载入 PLANT-1 M0</button>
+      </div>
+    </div>
     <div class="drop" id="drop">
       <b>把 .fwsc 拖到这里，或点击选择</b>
       <span>也可以从社区固件页下载：Golf / Zombie / fm1-dock / OG Synth</span>
@@ -152,7 +168,7 @@ footer a{color:#7f93a9;text-decoration:none}
     <h2><span class="dot" style="background:#fb923c;box-shadow:0 0 8px #fb923c"></span>3 · 写入<span class="step">约 1 分钟</span></h2>
     <div class="consent">
       <input type="checkbox" id="consent" />
-      <label for="consent">我知道这会覆盖 FM-1 现有固件与数据，并且我已经在听 <b>不是 PLANT-1</b> 的那个固件包。</label>
+      <label for="consent">我知道这会覆盖 FM-1 现有固件与数据（工程、音色、采样）。</label>
     </div>
     <div class="actions">
       <button class="btn danger" id="btnWrite" disabled>写入固件</button>
@@ -233,8 +249,45 @@ const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart
 const bytes = (n) => n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : (n / 1024).toFixed(0) + ' KB';
 
 /* ---------------------------------------------------------------- 1 选包 */
-async function loadPackage(file) {
-  const raw = new Uint8Array(await file.arrayBuffer());
+let official = null;
+(async () => {
+  try {
+    const r = await fetch('../downloads/firmware.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    official = await r.json();
+    $('officialMeta').textContent = 'v' + official.version + ' · ' + official.product + ' · ' + bytes(official.bytes);
+    $('officialSha').textContent = 'sha256 ' + official.sha256;
+    $('btnOfficial').disabled = false;
+    log('官方构建：' + official.name + ' ' + official.version + ' · ' + official.product);
+  } catch (e) {
+    $('officialMeta').textContent = '没有可用的官方构建信息';
+    log('读取官方构建信息失败：' + e.message, 'w');
+  }
+})();
+
+$('btnOfficial').addEventListener('click', async () => {
+  if (!official) return;
+  $('btnOfficial').disabled = true;
+  $('officialMeta').textContent = '下载中…';
+  try {
+    const r = await fetch('../downloads/' + official.file);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const raw = new Uint8Array(await r.arrayBuffer());
+    const sha = hex(await crypto.subtle.digest('SHA-256', raw));
+    if (sha !== official.sha256) throw new Error('SHA-256 不匹配（下载损坏或被改过）');
+    await loadBytes(raw, official.file);
+    $('officialMeta').textContent = official.name + ' ' + official.version + ' 已载入';
+  } catch (e) {
+    $('pkgMsg').className = 'msg show err';
+    $('pkgMsg').innerHTML = '<b>载入失败：</b>' + e.message;
+    $('officialMeta').textContent = '载入失败';
+    log('官方构建载入失败：' + e.message, 'e');
+  } finally {
+    $('btnOfficial').disabled = false;
+  }
+});
+
+async function loadBytes(raw, label) {
   if (raw.length < 960) throw new Error('文件太短，不像 .fwsc 固件包');
   const product = productOf(raw);
   if (!/^FM-1_\d+$/.test(product)) throw new Error('包身份不是 FM-1_…（解析到 "' + product + '"）');
@@ -255,11 +308,15 @@ async function loadPackage(file) {
   $('vLoader').textContent = hasLoader ? '包含 FELUCCA-LOADER-1' : '未找到加载器标记';
   $('vLoader').className = hasLoader ? 'okc' : 'warnc';
   $('kv').classList.add('show');
-  log('固件包 ' + file.name + ' → ' + product + ' · ' + bytes(raw.length), 's');
+  log('固件包 ' + label + ' → ' + product + ' · ' + bytes(raw.length), 's');
   log('SHA-256 ' + sha);
   if (!hasLoader) log('警告：包里没有加载器标记，可能不是完整的 FM-1 固件包', 'w');
   $('pkgMsg').classList.remove('show');
   updateWriteButton();
+}
+
+async function loadPackage(file) {
+  await loadBytes(new Uint8Array(await file.arrayBuffer()), file.name);
 }
 
 $('drop').addEventListener('click', () => $('file').click());

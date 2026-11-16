@@ -22,7 +22,7 @@ Write-Host "== stage"
 if (Test-Path (Join-Path $root ".deploy")) { Remove-Item (Join-Path $root ".deploy") -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item (Join-Path $root "index.html") $stage
-foreach ($d in @("install", "play", "flash", "assets")) {
+foreach ($d in @("install", "play", "flash", "assets", "downloads")) {
   Copy-Item (Join-Path $root $d) $stage -Recurse
 }
 
