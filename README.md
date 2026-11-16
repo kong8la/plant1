@@ -2,10 +2,9 @@
 
 把 Kilohearts **Phase Plant** 那套「发生器 / 调制器 / 效果器」模块化思路，做成 **M-VAVE FM-1** 的样子：27 键、TFT 小屏、袖珍机身。不一样的是，这台固件跑在**浏览器**里——打开就能弹，不用刷机，也不会变砖。
 
-- 在线试玩：`/play/`
-- 安装页（离线安装 + 连接 FM-1）：`/install/`
-- 刷写页（真机 `.fwsc` 固件）：`/flash/`
-- 落地页：`/`
+- 在线试玩：**<https://kong8la.com/plant1/play/>**
+- 线上站点：**<https://kong8la.com/plant1/>**（安装页 `/install/`，刷写页 `/flash/`）
+- 本地：`node build.mjs` 后打开 `play/index.html`，或 `npx serve .`
 
 ## 目录
 
@@ -38,11 +37,26 @@ npx serve .             # 或 python -m http.server
 
 `file://` 直接打开 `play/index.html` 也能出声（AudioWorklet 被禁用时自动退回 ScriptProcessor），只是没有离线缓存和 PWA 安装。
 
-## 发布到 GitHub Pages
+## 部署
+
+### kong8la.com（当前线上）
+
+站点挂在 `45.76.107.67` 的 nginx 下，路径 `/var/www/northline/plant1/`，对外 **<https://kong8la.com/plant1/>**。
+
+```powershell
+.\deploy\publish.ps1          # 构建 → 上传 → 挂 nginx（幂等）
+.\deploy\publish.ps1 -NoBuild # 只上传已有产物
+```
+
+- `deploy/remote-install.sh`：服务器端全部逻辑（修权限、加 `location ^~ /plant1/`、补 `.webmanifest` MIME、`nginx -t` + reload、逐项自检）。
+- 首次部署会备份原 nginx 配置到 `/root/northline.<时间戳>.bak`，并给 `.webmanifest` 补 `application/manifest+json`。
+- 线上验收：`node test/live.mjs`（四个页面 + AudioWorklet 出声 + SW 作用域 + 控制台错误）。
+
+### GitHub Pages（备用）
 
 1. 建仓库并推送（见下）。
 2. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
-3. 推一个 commit 到 `main`，工作流会自动 `node build.mjs` 并把 `index.html / install / play / assets` 发布出去。
+3. 推一个 commit 到 `main`，工作流会自动 `node build.mjs` 并把 `index.html / install / play / flash / assets` 发布出去。
 
 推送命令：
 
