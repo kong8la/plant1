@@ -1,4 +1,4 @@
-/* 线上刷写页验收：官方构建能否载入并解析 */
+/* 线上刷写页验收：打开页面就自动拉官方固件、校验、进入可安装状态 */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,27 +38,30 @@ await send('Runtime.enable');
 await send('Log.enable');
 await send('Page.enable');
 await send('Page.navigate', { url: BASE + 'flash/' });
-await sleep(1600);
-
-const boot = await ev(`({
-  booted: window.__flashBooted === true,
-  meta: document.querySelector('#officialMeta').textContent,
-  btnDisabled: document.querySelector('#btnOfficial').disabled
-})`);
+await sleep(1200);
 
 const loaded = await ev(`(async () => {
-  document.querySelector('#btnOfficial').click();
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 100; i++) {
     await new Promise(r => setTimeout(r, 100));
-    const t = document.querySelector('#officialMeta').textContent;
-    if (t.includes('已载入') || t.includes('失败')) return { meta: t, state: window.PLANT1_FLASH.state(), sha: document.querySelector('#vSha').textContent, product: document.querySelector('#vProduct').textContent };
+    const st = window.PLANT1_FLASH.state();
+    if (st.product) {
+      return {
+        name: document.querySelector('#fwName').textContent,
+        meta: document.querySelector('#officialMeta').textContent,
+        fwState: document.querySelector('#fwState').textContent,
+        product: st.product,
+        imageBytes: st.imageBytes,
+        sha: document.querySelector('#vSha').textContent,
+        installDisabled: document.querySelector('#btnWrite').disabled
+      };
+    }
   }
-  return { timeout: true, meta: document.querySelector('#officialMeta').textContent };
+  return { timeout: true, fwState: document.querySelector('#fwState').textContent };
 })()`);
 
 const shot = await send('Page.captureScreenshot', { format: 'png' });
-fs.writeFileSync(path.join(root, 'shots', 'flash-official.png'), Buffer.from(shot.data, 'base64'));
+fs.writeFileSync(path.join(root, 'shots', 'flash-auto.png'), Buffer.from(shot.data, 'base64'));
 
-console.log(JSON.stringify({ boot, loaded, errors: errors.length ? errors : 'none' }, null, 2));
+console.log(JSON.stringify({ loaded, errors: errors.length ? errors : 'none' }, null, 2));
 ws.close(); chrome.kill();
 process.exit(errors.length || !loaded.product ? 1 : 0);

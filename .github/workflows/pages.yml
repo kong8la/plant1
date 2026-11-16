@@ -24,6 +24,8 @@ jobs:
           node-version: 22
       - name: Build single-file synth
         run: node build.mjs
+      - name: Firmware meta (verified SHA-256)
+        run: node tools/sync-firmware.mjs
       - name: Stage site
         run: |
           mkdir -p _site

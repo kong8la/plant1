@@ -49,6 +49,10 @@ h1{font-size:clamp(30px,4.4vw,44px);margin:12px 0 12px}
 .buildinfo-h b{color:#7dd3fc;letter-spacing:.02em}
 .buildinfo-h span{font:10px var(--mono);color:var(--mut);text-align:right}
 .buildinfo-b{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+.alt{margin-top:10px;border-top:1px solid #14202c;padding-top:8px}
+.alt summary{font-size:12px;color:var(--mut);cursor:pointer;list-style:none}
+.alt summary::-webkit-details-marker{display:none}
+.alt summary:hover{color:var(--txt)}
 .buildinfo-b code{font:10px var(--mono);color:#5f7f96;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .drop:hover,.drop.over{border-color:var(--gen);background:#0c1620}
 .drop b{display:block;font-size:14px;margin-bottom:6px}
@@ -129,22 +133,25 @@ footer a{color:#7f93a9;text-decoration:none}
   </section>
 
   <section class="card">
-    <h2><span class="dot"></span>1 · 选择固件包<span class="step">FWSC</span></h2>
+    <h2><span class="dot"></span>1 · 固件<span class="step">AUTO</span></h2>
     <div class="buildinfo" id="official">
       <div class="buildinfo-h">
-        <b>PLANT-1 M0</b>
-        <span id="officialMeta">读取版本信息…</span>
+        <b id="fwName">PLANT-1</b>
+        <span id="officialMeta">读取中…</span>
       </div>
       <div class="buildinfo-b">
         <code id="officialSha">—</code>
-        <button class="btn" id="btnOfficial" disabled>载入 PLANT-1 M0</button>
+        <span class="status" id="fwState">校验中…</span>
       </div>
     </div>
-    <div class="drop" id="drop">
-      <b>把 .fwsc 拖到这里，或点击选择</b>
-      <span>也可以从社区固件页下载：Golf / Zombie / fm1-dock / OG Synth</span>
-    </div>
-    <input type="file" id="file" accept=".fwsc,application/octet-stream" hidden />
+    <details class="alt">
+      <summary>或使用电脑上的 .fwsc 文件</summary>
+      <div class="drop" id="drop" style="margin-top:10px">
+        <b>把 .fwsc 拖到这里，或点击选择</b>
+        <span>Golf / Zombie / fm1-dock / OG Synth 等社区固件，或恢复原厂用的包</span>
+      </div>
+      <input type="file" id="file" accept=".fwsc,application/octet-stream" hidden />
+    </details>
     <dl class="kv" id="kv">
       <dt>包身份</dt><dd id="vProduct">—</dd>
       <dt>文件大小</dt><dd id="vSize">—</dd>
@@ -165,13 +172,13 @@ footer a{color:#7f93a9;text-decoration:none}
   </section>
 
   <section class="card">
-    <h2><span class="dot" style="background:#fb923c;box-shadow:0 0 8px #fb923c"></span>3 · 写入<span class="step">约 1 分钟</span></h2>
+    <h2><span class="dot" style="background:#fb923c;box-shadow:0 0 8px #fb923c"></span>3 · 安装<span class="step">约 1 分钟</span></h2>
     <div class="consent">
       <input type="checkbox" id="consent" />
       <label for="consent">我知道这会覆盖 FM-1 现有固件与数据（工程、音色、采样）。</label>
     </div>
     <div class="actions">
-      <button class="btn danger" id="btnWrite" disabled>写入固件</button>
+      <button class="btn danger" id="btnWrite" disabled>安装固件</button>
       <span class="status" id="writeStatus">等待固件包</span>
     </div>
     <div class="bar" id="bar"><i id="barFill"></i></div>
@@ -221,6 +228,7 @@ footer a{color:#7f93a9;text-decoration:none}
   }, 1200);
 </script>
 
+<script src="meta.js"></script>
 <script type="module">
 import { Updater } from './vendor/fm1ota.js';
 import { productOf, logicalImage } from './vendor/fm1pkg.js';
@@ -248,45 +256,45 @@ function log(msg, cls) {
 const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 const bytes = (n) => n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : (n / 1024).toFixed(0) + ' KB';
 
-/* ---------------------------------------------------------------- 1 选包 */
+/* ---------------------------------------------------------------- 1 固件 */
 let official = null;
-(async () => {
-  try {
-    const r = await fetch('../downloads/firmware.json', { cache: 'no-store' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    official = await r.json();
-    $('officialMeta').textContent = 'v' + official.version + ' · ' + official.product + ' · ' + bytes(official.bytes);
-    $('officialSha').textContent = 'sha256 ' + official.sha256;
-    $('btnOfficial').textContent = '载入 ' + official.name;
-    $('btnOfficial').disabled = false;
-    log('官方构建：' + official.name + ' ' + official.version + ' · ' + official.product);
-  } catch (e) {
-    $('officialMeta').textContent = '没有可用的官方构建信息';
-    log('读取官方构建信息失败：' + e.message, 'w');
-  }
-})();
 
-$('btnOfficial').addEventListener('click', async () => {
-  if (!official) return;
-  $('btnOfficial').disabled = true;
-  $('officialMeta').textContent = '下载中…';
+/* 站点构建时内联的 flash/meta.js；没有就用 downloads/firmware.json 兜底（本地开发） */
+async function bootFirmware() {
+  let m = window.PLANT1_FW || null;
+  if (!m) {
+    try {
+      const r = await fetch('../downloads/firmware.json', { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      m = await r.json();
+    } catch (e) {
+      $('officialMeta').textContent = '没有固件信息';
+      log('读取固件信息失败：' + e.message, 'w');
+      return;
+    }
+  }
+  official = m;
+  $('fwName').textContent = m.name;
+  $('officialMeta').textContent = 'v' + m.version + ' · ' + m.product + ' · ' + bytes(m.bytes);
+  $('officialSha').textContent = 'sha256 ' + m.sha256;
+  $('fwState').textContent = '下载并校验中…';
   try {
-    const r = await fetch('../downloads/' + official.file);
+    const r = await fetch('../downloads/' + m.file, { cache: 'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const raw = new Uint8Array(await r.arrayBuffer());
     const sha = hex(await crypto.subtle.digest('SHA-256', raw));
-    if (sha !== official.sha256) throw new Error('SHA-256 不匹配（下载损坏或被改过）');
-    await loadBytes(raw, official.file);
-    $('officialMeta').textContent = official.name + ' ' + official.version + ' 已载入';
+    if (sha !== m.sha256) throw new Error('SHA-256 不匹配（下载损坏或被改过）');
+    await loadBytes(raw, m.file);
+    $('fwState').innerHTML = '<span class="ok">已校验</span>';
+    log('固件就绪：' + m.name + ' ' + m.version + ' · ' + m.product, 's');
   } catch (e) {
+    $('fwState').innerHTML = '<span class="bad">加载失败</span>';
     $('pkgMsg').className = 'msg show err';
-    $('pkgMsg').innerHTML = '<b>载入失败：</b>' + e.message;
-    $('officialMeta').textContent = '载入失败';
-    log('官方构建载入失败：' + e.message, 'e');
-  } finally {
-    $('btnOfficial').disabled = false;
+    $('pkgMsg').innerHTML = '<b>固件加载失败：</b>' + e.message;
+    log('固件加载失败：' + e.message, 'e');
   }
-});
+}
+bootFirmware();
 
 async function loadBytes(raw, label) {
   if (raw.length < 960) throw new Error('文件太短，不像 .fwsc 固件包');
@@ -410,7 +418,7 @@ const STEP_TEXT = {
 function updateWriteButton() {
   const ready = !!(state.image && $('consent').checked) && !state.busy;
   $('btnWrite').disabled = !ready;
-  if (!state.image) $('writeStatus').textContent = '等待固件包';
+  if (!state.image) $('writeStatus').textContent = '等待固件';
   else if (!state.dev) $('writeStatus').textContent = '可以写入（会自动寻找设备）';
   else $('writeStatus').textContent = '可以写入';
 }
@@ -513,7 +521,7 @@ $('btnAgain').addEventListener('click', () => {
   $('bar').classList.remove('show');
   $('barFill').style.width = '0%';
   $('consent').checked = false;
-  $('writeStatus').textContent = '等待固件包';
+  $('writeStatus').textContent = '等待固件';
   $('connStatus').textContent = '未连接';
   $('resultMsg').className = 'msg show';
   $('resultMsg').textContent = '清空了。重新选包、连接、写入。';

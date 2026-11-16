@@ -18,6 +18,10 @@ if (-not $NoBuild) {
   if ($LASTEXITCODE -ne 0) { Write-Host "构建失败" -ForegroundColor Red; exit 1 }
 }
 
+Write-Host "== firmware meta"
+node (Join-Path $root "tools\sync-firmware.mjs")
+if ($LASTEXITCODE -ne 0) { Write-Host "固件清单校验失败" -ForegroundColor Red; exit 1 }
+
 Write-Host "== stage"
 if (Test-Path (Join-Path $root ".deploy")) { Remove-Item (Join-Path $root ".deploy") -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
