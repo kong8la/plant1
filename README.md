@@ -48,9 +48,20 @@ npx serve .             # 或 python -m http.server
 .\deploy\publish.ps1 -NoBuild # 只上传已有产物
 ```
 
+如果执行策略拦了脚本，用 `powershell -ExecutionPolicy Bypass -File .\deploy\publish.ps1`。
+
 - `deploy/remote-install.sh`：服务器端全部逻辑（修权限、加 `location ^~ /plant1/`、补 `.webmanifest` MIME、`nginx -t` + reload、逐项自检）。
 - 首次部署会备份原 nginx 配置到 `/root/northline.<时间戳>.bak`，并给 `.webmanifest` 补 `application/manifest+json`。
 - 线上验收：`node test/live.mjs`（四个页面 + AudioWorklet 出声 + SW 作用域 + 控制台错误）。
+- 服务器上另有一个 bare 仓库当备份 origin：`kong8la` → `ssh://root@45.76.107.67/srv/git/plant1.git`，`git push kong8la main` 即可。
+
+### GitHub
+
+```powershell
+.\deploy\push-github.ps1     # 需要先把公钥加进 GitHub，并建一个空仓库
+```
+
+脚本会自己识别 GitHub 用户名、检查仓库、添加 `origin` 并推送，最后打印开 Pages 的地址。
 
 ### GitHub Pages（备用）
 
