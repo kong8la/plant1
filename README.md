@@ -101,7 +101,7 @@ git push -u origin main
 
 `/flash/` 是**真刷机页**：走 FM-1 自己的 USB-MIDI 升级协议（M-UPGRADE 兼容），不是演示动画。
 
-页面顶部现在有 **PLANT-1 M0** 的官方构建可以直接载入（`FM-1_9000`，v0.1.0，SHA-256 校验后才会启用写入）。
+页面顶部现在有 **PLANT-1 M1** 的官方构建可以直接载入（`FM-1_9000`，v0.1.0，SHA-256 校验后才会启用写入）。
 M0 是浏览器版引擎搬上真机的第一个里程碑：一个 FM 音色 + ADSR + 27 键 + 240×240 屏幕，
 源码在 **[kong8la/plant1-fw](https://github.com/kong8la/plant1-fw)**，由 GitHub Actions 用
 [JieLi 工具链 + AC79 SDK](https://github.com/zvenson/fm1-build) 构建并 attest。
