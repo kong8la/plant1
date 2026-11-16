@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>刷写固件 · PLANT-1</title>
+<meta name="description" content="在浏览器里把 .fwsc 固件包写进 M-VAVE FM-1：选包、校验、连接、写入、重启验证。" />
+<link rel="icon" href="../assets/icon.svg" />
+<style>
+:root{
+  --bg:#07090d; --panel:#0d1219; --panel2:#101823; --line:#1c2634; --line2:#263343;
+  --txt:#dce7f4; --mut:#7a8a9e; --gen:#38bdf8; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,monospace;
+  --sans:ui-sans-serif,"Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(900px 420px at 12% -6%,rgba(56,189,248,.07),transparent 60%),var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px 70px}
+.nav{height:58px;border-bottom:1px solid var(--line);display:flex;align-items:center;background:rgba(8,11,16,.85);position:sticky;top:0;backdrop-filter:blur(10px);z-index:10}
+.nav .wrap{display:flex;align-items:center;gap:14px;padding-bottom:0;width:100%;max-width:900px}
+.brand{font-weight:700;letter-spacing:.16em;font-size:15px;text-decoration:none}
+.brand span{color:var(--gen)}
+.nav .back{font-size:12px;color:var(--mut);text-decoration:none}
+.nav .back:hover{color:var(--txt)}
+
+.crumb{margin:26px 0 0;font:11px var(--mono);letter-spacing:.14em;color:#5b6b80}
+h1{font-size:clamp(30px,4.4vw,44px);margin:12px 0 12px}
+.lead{font-size:14px;line-height:1.8;color:#a9b8ca;margin:0 0 22px;max-width:700px}
+
+.card{background:linear-gradient(180deg,var(--panel2),#0a0f16);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:14px}
+.card h2{margin:0 0 12px;font-size:11px;letter-spacing:.2em;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:8px}
+.card h2 .dot{width:6px;height:6px;border-radius:50%;background:var(--gen);box-shadow:0 0 8px var(--gen)}
+.card h2 .step{margin-left:auto;font:10px var(--mono);letter-spacing:.1em;color:#4f6076}
+
+.danger{background:linear-gradient(180deg,#1c0f10,#120a0a);border-color:#47211f}
+.danger h2{color:#fca5a5}
+.danger h2 .dot{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+.danger ul{margin:0;padding-left:20px;font-size:13px;line-height:1.95;color:#e4c9c9}
+.danger li b{color:#fff}
+
+.drop{
+  border:1px dashed #2c3d52;border-radius:11px;padding:22px;text-align:center;cursor:pointer;
+  transition:.15s;background:#0a0f16;
+}
+.drop:hover,.drop.over{border-color:var(--gen);background:#0c1620}
+.drop b{display:block;font-size:14px;margin-bottom:6px}
+.drop span{font-size:12px;color:var(--mut)}
+
+.kv{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;margin-top:14px;font-size:12px;display:none}
+.kv.show{display:grid}
+.kv dt{color:#5f7088;font:10px/1.9 var(--mono);letter-spacing:.14em;padding-top:1px}
+.kv dd{margin:0;font:11.5px/1.7 var(--mono);color:#cfe0f2;word-break:break-all}
+.kv dd.warnc{color:var(--warn)}
+.kv dd.okc{color:var(--ok)}
+
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+button.btn{font-family:var(--sans);font-size:13px;border-radius:8px;padding:10px 18px;cursor:pointer;border:1px solid var(--line2);background:var(--panel);color:var(--txt);transition:.15s}
+button.btn:hover:not(:disabled){border-color:#3a5470}
+button.btn:disabled{opacity:.4;cursor:not-allowed}
+button.btn.primary{background:linear-gradient(180deg,#38bdf8,#0ea5e9);color:#04121a;border-color:#38bdf8;font-weight:700}
+button.btn.danger{background:linear-gradient(180deg,#f87171,#dc2626);color:#200707;border-color:#f87171;font-weight:700}
+.status{font:11px var(--mono);color:var(--mut)}
+.status .ok{color:var(--ok)} .status .bad{color:var(--bad)} .status .warnc{color:var(--warn)}
+
+.consent{display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:12px;color:#a9b8ca;line-height:1.7}
+.consent input{margin-top:3px;accent-color:#38bdf8}
+
+.bar{height:8px;border-radius:5px;background:#0a1418;border:1px solid #16232c;overflow:hidden;margin-top:12px;display:none}
+.bar.show{display:block}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22d3ee,#38bdf8);transition:width .2s linear}
+.bar.indet i{width:30%;animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(430%)}}
+
+.msg{margin-top:10px;font-size:12px;line-height:1.7;color:#8fa1b5;display:none}
+.msg.show{display:block}
+.msg b{color:var(--txt)}
+.msg.err{color:#fca5a5}
+
+.loghead{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+.loghead h2{margin:0;font-size:11px;letter-spacing:.2em;color:var(--mut);font-weight:600}
+.loghead button{font-size:11px;background:transparent;border:1px solid var(--line2);border-radius:6px;color:var(--mut);padding:5px 10px;cursor:pointer;font-family:var(--sans)}
+.loghead button:hover{color:var(--txt)}
+.log{background:#05080c;border:1px solid #16202c;border-radius:9px;padding:10px 12px;height:170px;overflow:auto;font:11px/1.75 var(--mono);color:#8ea3b8;margin-top:8px}
+.log div{white-space:pre-wrap;word-break:break-all}
+.log .t{color:#3f5163} .log .e{color:#f87171} .log .s{color:#4ade80} .log .w{color:#fbbf24}
+
+.note{margin-top:20px;background:#0b0a07;border:1px solid #2a2417;border-radius:12px;padding:16px 20px;font-size:12.5px;line-height:1.9;color:#c4b9a2}
+.note b{color:#f5e6c8}
+.note a{color:#fbbf24;text-decoration:none}
+.note a:hover{text-decoration:underline}
+footer{margin-top:26px;font-size:11px;color:#4d5c6e;line-height:1.9}
+footer a{color:#7f93a9;text-decoration:none}
+@media (max-width:720px){ .kv{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="../">PLANT<span>-1</span></a>
+    <a class="back" href="../">← 返回</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="crumb">FLASH / 刷写固件</div>
+  <h1>刷写 FM-1 固件</h1>
+  <p class="lead">
+    在浏览器里把 <b>.fwsc</b> 固件包写进 M-VAVE FM-1：选包 → 校验 → 连接 → 写入 → 设备重启后自报身份确认。
+    大约一分钟，走的是 FM-1 自己的 USB-MIDI 升级协议（M-UPGRADE 兼容）。
+  </p>
+
+  <section class="card danger">
+    <h2><span class="dot"></span>开始之前</h2>
+    <ul>
+      <li><b>会覆盖</b> FM-1 当前的固件、工程、音色和采样。想留的东西先导出来。</li>
+      <li>用桌面版 <b>Chrome 或 Edge</b>，USB <b>数据线</b>直连，关掉 DAW / MIDI-OX / 其它升级页（Windows 一次只让一个程序占用端口）。</li>
+      <li>写入中途断了<b>不会变砖</b>：设备会停在更新加载器里，插回线再点一次「写入」即可续传。</li>
+      <li>这个页面和包里是什么固件无关——PLANT-1 本身是浏览器固件，不在 <b>.fwsc</b> 体系里（见页尾说明）。</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><span class="dot"></span>1 · 选择固件包<span class="step">.FWSC</span></h2>
+    <div class="drop" id="drop">
+      <b>把 .fwsc 拖到这里，或点击选择</b>
+      <span>也可以从社区固件页下载：Golf / Zombie / fm1-dock / OG Synth</span>
+    </div>
+    <input type="file" id="file" accept=".fwsc,application/octet-stream" hidden />
+    <dl class="kv" id="kv">
+      <dt>包身份</dt><dd id="vProduct">—</dd>
+      <dt>文件大小</dt><dd id="vSize">—</dd>
+      <dt>逻辑镜像</dt><dd id="vImage">—</dd>
+      <dt>SHA-256</dt><dd id="vSha">—</dd>
+      <dt>加载器</dt><dd id="vLoader">—</dd>
+    </dl>
+    <div class="msg" id="pkgMsg"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="dot" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>2 · 连接 FM-1<span class="step">USB MIDI</span></h2>
+    <div class="actions">
+      <button class="btn" id="btnConnect">连接 FM-1</button>
+      <span class="status" id="connStatus">未连接</span>
+    </div>
+    <div class="msg" id="connMsg"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="dot" style="background:#fb923c;box-shadow:0 0 8px #fb923c"></span>3 · 写入<span class="step">约 1 分钟</span></h2>
+    <div class="consent">
+      <input type="checkbox" id="consent" />
+      <label for="consent">我知道这会覆盖 FM-1 现有固件与数据，并且我已经在听 <b>不是 PLANT-1</b> 的那个固件包。</label>
+    </div>
+    <div class="actions">
+      <button class="btn danger" id="btnWrite" disabled>写入固件</button>
+      <span class="status" id="writeStatus">等待固件包</span>
+    </div>
+    <div class="bar" id="bar"><i id="barFill"></i></div>
+    <div class="msg" id="writeMsg"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="dot" style="background:#4ade80;box-shadow:0 0 8px #4ade80"></span>4 · 结果<span class="step">DEVICE IDENTITY</span></h2>
+    <div class="actions">
+      <a class="btn" href="../play/" style="text-decoration:none">打开 PLANT-1 →</a>
+      <button class="btn" id="btnAgain">再刷一次</button>
+    </div>
+    <div class="msg show" id="resultMsg">还没开始。刷完后设备会自己报出它现在运行的身份（例如 <b>FM-1_63002101</b>）。</div>
+  </section>
+
+  <div class="loghead">
+    <h2>日志</h2>
+    <button id="btnSaveLog">保存日志</button>
+  </div>
+  <div class="log" id="log"></div>
+
+  <section class="note">
+    <b>PLANT-1 不在这个页面上刷。</b>它是一台跑在浏览器里的合成器（<a href="../play/">直接试玩</a>），
+    装机方式见 <a href="../install/">安装页</a>。这一页负责的是真正的 FM-1 固件包（<code>.fwsc</code>）：
+    社区固件、官方固件，或者你从别处拿到的实验固件——只要它是 fm1-base 体系的包。
+    刷机协议与包解析来自 <a href="https://github.com/Joolo09/zombie-fm1-web" target="_blank" rel="noreferrer">zombie-fm1-web</a> /
+    <a href="https://github.com/charlesvestal/fm1-base" target="_blank" rel="noreferrer">fm1-base</a>，
+    按 MPL-2.0 使用。想回原厂：用 M-VAVE 自己的升级工具（M-UPGRADE）。
+  </section>
+
+  <footer>
+    MPL-2.0 覆盖 <code>flash/vendor/</code> 下的两个文件，其余为 MIT。
+    与 Kilohearts、M-VAVE 无隶属关系。
+  </footer>
+</main>
+
+<script>
+  // file:// 下 ES module 会被 CORS 拦住；提示改用本地服务或线上版
+  window.__flashBooted = false;
+  setTimeout(function () {
+    if (!window.__flashBooted) {
+      var el = document.getElementById('pkgMsg');
+      el.className = 'msg show err';
+      el.innerHTML = '页面脚本没有加载：<b>file://</b> 打开时浏览器会拦截 ES module。' +
+        '用 <code>npx serve .</code> 起个本地服务，或直接访问线上版本。';
+    }
+  }, 1200);
+</script>
+
+<script type="module">
+import { Updater } from './vendor/fm1ota.js';
+import { productOf, logicalImage } from './vendor/fm1pkg.js';
+
+const $ = (id) => document.getElementById(id);
+window.__flashBooted = true;
+
+const state = { raw: null, product: '', image: null, sha: '', access: null, dev: null, busy: false };
+const logEl = $('log');
+
+function log(msg, cls) {
+  const t = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  const d = document.createElement('div');
+  const s = document.createElement('span');
+  s.className = 't';
+  s.textContent = t + '  ';
+  d.appendChild(s);
+  const b = document.createElement('span');
+  b.className = cls || '';
+  b.textContent = msg;
+  d.appendChild(b);
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+const bytes = (n) => n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : (n / 1024).toFixed(0) + ' KB';
+
+/* ---------------------------------------------------------------- 1 选包 */
+async function loadPackage(file) {
+  const raw = new Uint8Array(await file.arrayBuffer());
+  if (raw.length < 960) throw new Error('文件太短，不像 .fwsc 固件包');
+  const product = productOf(raw);
+  if (!/^FM-1_\d+$/.test(product)) throw new Error('包身份不是 FM-1_…（解析到 "' + product + '"）');
+  const image = logicalImage(raw);
+  const marker = new TextEncoder().encode('FELUCCA-LOADER-1');
+  let hasLoader = false;
+  outer: for (let i = 0; i + marker.length <= raw.length; i++) {
+    if (raw[i] !== marker[0]) continue;
+    for (let j = 1; j < marker.length; j++) if (raw[i + j] !== marker[j]) continue outer;
+    hasLoader = true; break;
+  }
+  const sha = hex(await crypto.subtle.digest('SHA-256', raw));
+  Object.assign(state, { raw, product, image, sha });
+  $('vProduct').textContent = product;
+  $('vSize').textContent = bytes(raw.length) + '（' + raw.length + ' 字节）';
+  $('vImage').textContent = bytes(image.length) + '（' + image.length + ' 字节）';
+  $('vSha').textContent = sha;
+  $('vLoader').textContent = hasLoader ? '包含 FELUCCA-LOADER-1' : '未找到加载器标记';
+  $('vLoader').className = hasLoader ? 'okc' : 'warnc';
+  $('kv').classList.add('show');
+  log('固件包 ' + file.name + ' → ' + product + ' · ' + bytes(raw.length), 's');
+  log('SHA-256 ' + sha);
+  if (!hasLoader) log('警告：包里没有加载器标记，可能不是完整的 FM-1 固件包', 'w');
+  $('pkgMsg').classList.remove('show');
+  updateWriteButton();
+}
+
+$('drop').addEventListener('click', () => $('file').click());
+$('drop').addEventListener('dragover', (e) => { e.preventDefault(); $('drop').classList.add('over'); });
+$('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'));
+$('drop').addEventListener('drop', (e) => {
+  e.preventDefault();
+  $('drop').classList.remove('over');
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) pick(f);
+});
+$('file').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (f) pick(f);
+  e.target.value = '';
+});
+
+async function pick(file) {
+  try {
+    await loadPackage(file);
+  } catch (err) {
+    state.raw = null; state.image = null;
+    $('kv').classList.remove('show');
+    $('pkgMsg').className = 'msg show err';
+    $('pkgMsg').innerHTML = '<b>读不了这个包：</b>' + err.message;
+    log('读包失败：' + err.message, 'e');
+    updateWriteButton();
+  }
+}
+
+/* -------------------------------------------------------------- 2 连接 */
+async function getAccess() {
+  if (state.access) return state.access;
+  if (!navigator.requestMIDIAccess) throw new Error('这个浏览器不支持 Web MIDI');
+  state.access = await navigator.requestMIDIAccess({ sysex: true });
+  state.access.onstatechange = () => { /* 端口热插拔：写入流程会自己重新找 */ };
+  return state.access;
+}
+
+$('btnConnect').addEventListener('click', async () => {
+  if (state.busy) return;
+  $('btnConnect').disabled = true;
+  $('connStatus').textContent = '请求 MIDI 权限…';
+  try {
+    const access = await getAccess();
+    const updater = new Updater(access, (m) => log(m));
+    const dev = await updater.find();
+    if (!dev) {
+      state.dev = null;
+      $('connStatus').innerHTML = '<span class="bad">没找到 FM-1</span>';
+      $('connMsg').className = 'msg show';
+      $('connMsg').innerHTML = '检查：USB 数据线（不是充电线）、设备已开机、没有别的程序占用它的 MIDI 端口。' +
+        '如果它停在更新加载器里，身份会是 <b>ota-FM-1</b>，也算连上。';
+      log('未发现 FM-1', 'w');
+    } else {
+      state.dev = dev.id;
+      await dev.link.close();
+      $('connStatus').innerHTML = '<span class="ok">已连接：' + dev.id.text + '</span>';
+      $('connMsg').className = 'msg show';
+      $('connMsg').innerHTML = '设备身份 <b>' + dev.id.text + '</b>' +
+        (dev.id.open ? '（M-VAVE 开放固件，只能刷回原厂 V15）' : '') +
+        (dev.id.model === 'ota-FM-1' ? '（当前在更新加载器里，点写入会直接续传）' : '');
+      log('设备身份 ' + dev.id.text + ' · ' + dev.name, 's');
+    }
+  } catch (err) {
+    const denied = /permission|denied|not granted/i.test(err.message || '');
+    const why = denied
+      ? '浏览器没有给 MIDI 权限：点地址栏左侧的 MIDI 图标允许一次，或到站点设置里把 MIDI 改成「允许」。'
+      : (err.message || String(err));
+    $('connStatus').innerHTML = '<span class="bad">连接失败</span>';
+    $('connMsg').className = 'msg show err';
+    $('connMsg').innerHTML = '<b>' + why + '</b>';
+    log('连接失败：' + why, 'e');
+  } finally {
+    $('btnConnect').disabled = false;
+    updateWriteButton();
+  }
+});
+
+/* -------------------------------------------------------------- 3 写入 */
+const STEP_TEXT = {
+  start: '设备接受，进入更新模式',
+  verify: '设备读取固件包，准备写入',
+  loader: '更新加载器就绪',
+  write: '写入中',
+  reboot: '等待设备重启',
+  done: '完成'
+};
+
+function updateWriteButton() {
+  const ready = !!(state.image && $('consent').checked) && !state.busy;
+  $('btnWrite').disabled = !ready;
+  if (!state.image) $('writeStatus').textContent = '等待固件包';
+  else if (!state.dev) $('writeStatus').textContent = '可以写入（会自动寻找设备）';
+  else $('writeStatus').textContent = '可以写入';
+}
+
+$('consent').addEventListener('change', updateWriteButton);
+
+$('btnWrite').addEventListener('click', async () => {
+  if (state.busy || !state.image) return;
+  state.busy = true;
+  updateWriteButton();
+  $('btnConnect').disabled = true;
+  $('writeMsg').className = 'msg show';
+  $('writeMsg').innerHTML = '开始。保持页面打开、线插着，设备会重启两次。';
+  $('bar').classList.add('show');
+  $('bar').classList.remove('indet');
+  $('barFill').style.width = '0%';
+
+  const total = state.image.length;
+
+  if (!navigator.requestMIDIAccess) {
+    $('resultMsg').className = 'msg show err';
+    $('resultMsg').innerHTML = '<b>这个浏览器不支持 Web MIDI。</b>用桌面版 Chrome 或 Edge。';
+    state.busy = false;
+    $('btnConnect').disabled = false;
+    updateWriteButton();
+    return;
+  }
+
+  let updater;
+  try {
+    const access = await getAccess();
+    updater = new Updater(access, (m) => log(m), { discoveryWaitMs: 800 });
+  } catch (err) {
+    const denied = /permission|denied|not granted/i.test(err.message || '');
+    $('resultMsg').className = 'msg show err';
+    $('resultMsg').innerHTML = '<b>没有拿到 MIDI 权限，写入没有开始。</b>' +
+      (denied ? '点地址栏左侧的 MIDI 图标允许一次，再点写入。' : (err.message || String(err)));
+    log('权限失败：' + (err.message || err), 'e');
+    state.busy = false;
+    $('btnConnect').disabled = false;
+    updateWriteButton();
+    return;
+  }
+
+  const step = (kind, n, addr) => {
+    const text = STEP_TEXT[kind] || kind;
+    if (kind === 'verify') {
+      $('bar').classList.add('indet');
+      $('writeStatus').textContent = text + '… ' + n + ' 块';
+    } else if (kind === 'write') {
+      $('bar').classList.remove('indet');
+      const pct = Math.max(0, Math.min(100, (addr / total) * 100));
+      $('barFill').style.width = pct.toFixed(1) + '%';
+      $('writeStatus').textContent = text + '… ' + pct.toFixed(0) + '%';
+    } else if (kind === 'done') {
+      $('bar').classList.remove('indet');
+      $('barFill').style.width = '100%';
+      $('writeStatus').textContent = text;
+    } else {
+      $('writeStatus').textContent = text + '…';
+    }
+    if (kind !== 'write' && kind !== 'verify') log('阶段：' + text + (n ? ' · ' + n : ''));
+  };
+
+  try {
+    const identity = await updater.install(state.image, state.product, step);
+    $('resultMsg').className = 'msg show';
+    $('resultMsg').innerHTML = '刷写完成，设备现在运行 <b>' + identity + '</b>。' +
+      '如果它没自动亮起来，拔插一次 USB 或按一下电源键。';
+    log('完成：设备身份 ' + identity, 's');
+  } catch (err) {
+    const map = {
+      notfound: '没找到 FM-1：检查线、电源，和是否有别的程序占用端口。',
+      model: '设备和固件包不匹配：' + (err.message || ''),
+      multiple: '同时看到了多个 FM-1 或路由：拔掉多余的设备再试。',
+      stopped: '设备中途停了：什么都没写进去。重新连接后再点一次。',
+      lost: 'USB 断开了：重新插好线，再点一次写入会续传。',
+      noloader: '更新加载器没有出现：拔插 USB 后重试；设备还停在更新模式里。',
+      noreturn: '设备没有回到正常模式：手动重新上电一次。',
+      mismatch: '装上了，但设备报的身份是 ' + (err.detail || '?') + '，和包里写的 ' + state.product + ' 不一致。',
+      open: '这台机器现在是 M-VAVE 的开放固件，只接受原厂 V15：先用 M-UPGRADE 刷回原厂。',
+      badreq: '设备发来的读取请求超出镜像范围，已中止，未写入。'
+    };
+    $('resultMsg').className = 'msg show err';
+    $('resultMsg').innerHTML = '<b>没有完成。</b>' + (map[err.code] || err.message || String(err)) +
+      (err.code ? '<br><span style="font:10px monospace;color:#6b7a8e">code: ' + err.code + '</span>' : '');
+    $('writeStatus').textContent = '中止';
+    log('中止：' + (err.code || '') + ' ' + (err.message || err), 'e');
+    $('bar').classList.remove('indet');
+  } finally {
+    state.busy = false;
+    $('btnConnect').disabled = false;
+    updateWriteButton();
+  }
+});
+
+$('btnAgain').addEventListener('click', () => {
+  state.raw = null; state.image = null; state.dev = null;
+  $('kv').classList.remove('show');
+  $('bar').classList.remove('show');
+  $('barFill').style.width = '0%';
+  $('consent').checked = false;
+  $('writeStatus').textContent = '等待固件包';
+  $('connStatus').textContent = '未连接';
+  $('resultMsg').className = 'msg show';
+  $('resultMsg').textContent = '清空了。重新选包、连接、写入。';
+  updateWriteButton();
+});
+
+$('btnSaveLog').addEventListener('click', () => {
+  const blob = new Blob([logEl.innerText], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'plant1-flash-log.txt';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  log('日志已保存');
+});
+
+/* 自检钩子（无头测试用） */
+window.PLANT1_FLASH = {
+  parse: async (raw) => {
+    const product = productOf(raw);
+    const image = logicalImage(raw);
+    const sha = hex(await crypto.subtle.digest('SHA-256', raw));
+    return { product, imageBytes: image.length, rawBytes: raw.length, sha };
+  },
+  state: () => ({ product: state.product, imageBytes: state.image ? state.image.length : 0, dev: state.dev && state.dev.text })
+};
+
+log('刷写页就绪 · 等待固件包', 's');
+</script>
+</body>
+</html>

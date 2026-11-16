@@ -4,6 +4,7 @@
 
 - 在线试玩：`/play/`
 - 安装页（离线安装 + 连接 FM-1）：`/install/`
+- 刷写页（真机 `.fwsc` 固件）：`/flash/`
 - 落地页：`/`
 
 ## 目录
@@ -12,6 +13,8 @@
 .
 ├── index.html              落地页
 ├── install/index.html      安装页（环境检查 / 连接 FM-1 / 安装 PWA）
+├── flash/index.html        刷写页（选包 / 校验 / 连接 / 写入 / 重启验证）
+├── flash/vendor/           fm1-base 体系的 OTA 协议与 .fwsc 解析（MPL-2.0）
 ├── play/index.html         合成器（build 产物，单文件 132 KB）
 ├── play/manifest.webmanifest + sw.js   离线缓存
 ├── assets/                 图标与截图
@@ -62,6 +65,26 @@ git push -u origin main
 | 拖旋钮 / `Shift` | 改值 / 精调 |
 | `Alt` + 拖已接线旋钮 | 调调制深度 |
 | 双击 / 右键旋钮 | 复位 / 清除该参数调制 |
+
+## 刷写真机固件（.fwsc）
+
+`/flash/` 是**真刷机页**：走 FM-1 自己的 USB-MIDI 升级协议（M-UPGRADE 兼容），不是演示动画。
+
+1. 选一个 `.fwsc` 固件包（Golf、Zombie、fm1-dock、OG Synth 或你自己用 fm1-base 打的包）。页面会解析包身份
+   （如 `FM-1_63002101`）、逻辑镜像长度、SHA-256，并确认里面有 `FELUCCA-LOADER-1`。
+2. 点「连接 FM-1」授权 Web MIDI，页面用身份查询（不靠端口名）确认设备。
+3. 勾选确认后写入：设备先进入更新模式、读取镜像，再重启进加载器、整片写入，最后自报身份校验。
+
+中断不会变砖：设备会停在更新加载器（身份 `ota-FM-1`），插回线再点写入即续传。
+恢复原厂固件用 M-VAVE 自己的 M-UPGRADE。
+
+> PLANT-1 自己不在这套 `.fwsc` 体系里——它是浏览器固件，装机见 `/install/`。
+> 这一页刷的是真机固件包，二者互不影响。
+
+协议与包解析来自
+[zombie-fm1-web](https://github.com/Joolo09/zombie-fm1-web) /
+[fm1-base](https://github.com/charlesvestal/fm1-base)，按 **MPL-2.0** 使用，
+见 [`flash/vendor/README.md`](flash/vendor/README.md) 与 [`flash/LICENSES/MPL-2.0.md`](flash/LICENSES/MPL-2.0.md)。
 
 ## 接上 FM-1
 

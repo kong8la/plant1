@@ -238,6 +238,35 @@ await sleep(300);
 await screenshot('install.png');
 await send('Emulation.clearDeviceMetricsOverride');
 
+/* ------------------------------------------------------------- 刷写页 */
+await send('Page.navigate', { url: siteUrl + 'flash/index.html' });
+await sleep(1300);
+report.flashBoot = await evalJs(`({
+  errs: window.__errs || [],
+  booted: window.__flashBooted === true,
+  hasApi: !!window.PLANT1_FLASH,
+  vendor: !!document.querySelector('script[type=module]')
+})`);
+report.flashParse = await evalJs(`(async () => {
+  try {
+    const r = await fetch('/test/fixtures/sample.fwsc');
+    if (!r.ok) return { skipped: true, status: r.status };
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const out = await window.PLANT1_FLASH.parse(buf);
+    return out;
+  } catch (e) { return { error: String(e && e.message || e) }; }
+})()`);
+await evalJs(`(async () => { document.querySelector('#btnConnect').click(); return 1; })()`);
+await sleep(1500);
+report.flashConnect = await evalJs(`({
+  status: document.querySelector('#connStatus').textContent,
+  msg: document.querySelector('#connMsg').textContent.slice(0, 120)
+})`);
+await send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 1200, deviceScaleFactor: 1, mobile: false });
+await sleep(300);
+await screenshot('flash.png');
+await send('Emulation.clearDeviceMetricsOverride');
+
 console.log(JSON.stringify({
   boot: { ...report.boot, offline: undefined },
   offlineBad: report.offlineBad,
@@ -249,6 +278,9 @@ console.log(JSON.stringify({
   sw: report.sw,
   landing: report.landing,
   install: report.install,
+  flashBoot: report.flashBoot,
+  flashParse: report.flashParse,
+  flashConnect: report.flashConnect,
   logs: logs.slice(0, 12),
   errors: errors.length ? errors : 'none'
 }, null, 2));
