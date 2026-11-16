@@ -8,178 +8,287 @@
 <link rel="icon" href="../assets/icon.svg" />
 <style>
 :root{
-  --bg:#07090d; --panel:#0d1219; --panel2:#101823; --line:#1c2634; --line2:#263343;
-  --txt:#dce7f4; --mut:#7a8a9e; --gen:#38bdf8; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  --bg:#04060c; --panel:rgba(13,18,27,.72); --line:rgba(86,140,180,.18); --line2:rgba(86,140,180,.34);
+  --txt:#e6f1fb; --mut:#7d90a6; --cy:#22d3ee; --vi:#a78bfa; --gr:#4ade80; --am:#fbbf24; --rd:#f87171;
   --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,monospace;
   --sans:ui-sans-serif,"Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
-body{background:radial-gradient(900px 420px at 12% -6%,rgba(56,189,248,.08),transparent 60%),var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
-a{color:inherit}
-.wrap{max-width:860px;margin:0 auto;padding:0 22px 70px}
-.nav{height:58px;border-bottom:1px solid var(--line);display:flex;align-items:center;background:rgba(8,11,16,.85);position:sticky;top:0;backdrop-filter:blur(10px);z-index:10}
-.nav .wrap{display:flex;align-items:center;gap:14px;padding-bottom:0;width:100%;max-width:860px}
-.brand{font-weight:700;letter-spacing:.16em;font-size:15px;text-decoration:none}
-.brand span{color:var(--gen)}
+html,body{margin:0;min-height:100%}
+body{
+  background:var(--bg); color:var(--txt); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; overflow-x:hidden; position:relative;
+}
+/* ---------------------------------------------------------------- 背景 */
+.bg{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+.bg .grid{
+  position:absolute;inset:-50%;
+  background-image:linear-gradient(rgba(56,189,248,.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(56,189,248,.055) 1px,transparent 1px);
+  background-size:56px 56px;
+  transform:perspective(600px) rotateX(58deg) translateY(-10%);
+  mask-image:radial-gradient(ellipse at 50% 20%,#000 0%,transparent 62%);
+  animation:grid 24s linear infinite;
+}
+@keyframes grid{to{background-position:0 56px,56px 0}}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;animation:float 18s ease-in-out infinite}
+.b1{width:520px;height:520px;left:-8%;top:-14%;background:radial-gradient(circle,#0e7490,transparent 68%)}
+.b2{width:460px;height:460px;right:-6%;top:6%;background:radial-gradient(circle,#4c1d95,transparent 68%);animation-delay:-6s}
+.b3{width:380px;height:380px;left:38%;bottom:-18%;background:radial-gradient(circle,#0f766e,transparent 66%);animation-delay:-12s}
+@keyframes float{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(24px,-30px,0) scale(1.08)}}
+.scan{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);
+  mix-blend-mode:overlay;opacity:.5}
+
+/* ---------------------------------------------------------------- 导航 */
+.nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;height:60px;padding:0 22px;
+  border-bottom:1px solid var(--line);background:rgba(5,8,14,.6);backdrop-filter:blur(16px)}
+.brand{font-weight:800;letter-spacing:.18em;font-size:15px;text-decoration:none;color:var(--txt)}
+.brand span{background:linear-gradient(90deg,var(--cy),var(--vi));-webkit-background-clip:text;background-clip:text;color:transparent}
 .nav .back{font-size:12px;color:var(--mut);text-decoration:none}
 .nav .back:hover{color:var(--txt)}
+.pills{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font:10px var(--mono);letter-spacing:.1em;
+  border:1px solid var(--line);border-radius:999px;padding:5px 10px;color:var(--mut);background:rgba(10,16,24,.6)}
+.pill i{width:6px;height:6px;border-radius:50%;background:#3b4a5c;display:inline-block}
+.pill.on{color:var(--gr);border-color:rgba(74,222,128,.35)}
+.pill.on i{background:var(--gr);box-shadow:0 0 8px var(--gr);animation:blip 2.4s ease-in-out infinite}
+.pill.warn{color:var(--am);border-color:rgba(251,191,36,.35)}
+.pill.warn i{background:var(--am)}
+@keyframes blip{50%{opacity:.35}}
 
-.crumb{margin:26px 0 0;font:11px var(--mono);letter-spacing:.14em;color:#5b6b80}
-h1{font-size:clamp(30px,4.4vw,44px);margin:12px 0 12px;letter-spacing:.01em}
-.lead{font-size:14px;line-height:1.8;color:#a9b8ca;margin:0 0 26px;max-width:660px}
+/* ---------------------------------------------------------------- 英雄区 */
+.wrap{position:relative;z-index:2;max-width:1080px;margin:0 auto;padding:0 22px 70px}
+.hero{padding:56px 0 30px}
+.kicker{font:10px var(--mono);letter-spacing:.3em;color:var(--cy);opacity:.85}
+h1{margin:14px 0 0;font-size:clamp(44px,7.4vw,84px);line-height:.94;letter-spacing:-.01em;font-weight:800}
+h1 span{background:linear-gradient(90deg,var(--cy),var(--vi) 70%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 26px rgba(34,211,238,.35))}
+.lead{margin:16px 0 0;max-width:620px;font-size:14.5px;line-height:1.85;color:#a9bbcd}
+.lead b{color:var(--txt)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.chip{font:10px var(--mono);letter-spacing:.08em;padding:7px 11px;border-radius:8px;
+  border:1px solid var(--line);color:#b9cbdd;background:linear-gradient(180deg,rgba(22,32,45,.8),rgba(10,15,22,.8))}
+.chip.glow{border-color:rgba(34,211,238,.4);color:#a5f3fc;box-shadow:0 0 18px rgba(34,211,238,.16) inset}
 
-.card{background:linear-gradient(180deg,var(--panel2),#0a0f16);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
-.card h2{margin:0 0 12px;font-size:11px;letter-spacing:.2em;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:8px}
-.card h2 .dot{width:6px;height:6px;border-radius:50%;background:var(--gen);box-shadow:0 0 8px var(--gen)}
+/* ---------------------------------------------------------------- 布局 */
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.95fr);gap:16px;margin-top:26px}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
-.before{margin-bottom:22px}
-.before ul{margin:0;padding-left:20px;font-size:13px;line-height:2;color:#b3c1d2}
-.before li b{color:var(--txt)}
-.before .hint{color:var(--warn)}
+/* 卡片 */
+.card{position:relative;border:1px solid var(--line);border-radius:16px;padding:18px 20px;
+  background:var(--panel);backdrop-filter:blur(14px);
+  box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04)}
+.card::after{content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+  background:radial-gradient(600px 120px at 10% -20%,rgba(34,211,238,.14),transparent 60%)}
+.card h2{margin:0 0 14px;font-size:10.5px;letter-spacing:.24em;color:var(--mut);font-weight:600;
+  display:flex;align-items:center;gap:9px;text-transform:uppercase}
+.num{width:22px;height:22px;border-radius:8px;display:grid;place-items:center;font:11px var(--mono);
+  color:#04121a;background:linear-gradient(135deg,var(--cy),#0ea5e9);box-shadow:0 0 14px rgba(34,211,238,.45)}
+.step-done .num{background:linear-gradient(135deg,var(--gr),#16a34a);box-shadow:0 0 14px rgba(74,222,128,.5)}
+.card .hint{margin-left:auto;font:9.5px var(--mono);letter-spacing:.1em;color:#4f6176}
 
-.build{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
-.build div{background:#0a0f16;border:1px solid var(--line);border-radius:9px;padding:10px 12px}
-.build .k{font:9px var(--mono);letter-spacing:.16em;color:#5f7088;display:block;margin-bottom:5px}
-.build .v{font:12px var(--mono);color:#cfe0f2}
-
-.step{margin-top:14px}
-.rows{display:flex;flex-direction:column;gap:1px;margin-top:4px}
-.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #111a24;font-size:13px}
+/* 检查行 */
+.rows{display:flex;flex-direction:column;gap:2px}
+.row{display:flex;align-items:center;gap:11px;padding:9px 2px;border-bottom:1px dashed rgba(86,140,180,.12);font-size:13px}
 .row:last-child{border-bottom:0}
-.row .name{flex:1;color:#c3d1e1}
-.row .val{font:11px var(--mono);color:var(--mut);max-width:58%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .mark{width:16px;text-align:center;font-size:12px}
-.ok{color:var(--ok)} .no{color:var(--bad)} .idle{color:#4b5a6d} .warnc{color:var(--warn)}
+.row .mark{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;
+  border:1px solid #2a3a4d;color:#4f6176;flex:0 0 auto;transition:.3s}
+.row .mark.ok{border-color:rgba(74,222,128,.6);color:#04120a;background:var(--gr);box-shadow:0 0 14px rgba(74,222,128,.35);transform:scale(1.06)}
+.row .mark.no{border-color:rgba(248,113,113,.6);color:#2a0808;background:var(--rd)}
+.row .mark.warnc{border-color:rgba(251,191,36,.6);color:#2a1f05;background:var(--am)}
+.row .name{flex:1;color:#c9d8e8}
+.row .val{font:10.5px var(--mono);color:var(--mut);max-width:55%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
-button.btn{font-family:var(--sans);font-size:13px;border-radius:8px;padding:10px 18px;cursor:pointer;border:1px solid var(--line2);background:var(--panel);color:var(--txt);transition:.15s}
-button.btn:hover:not(:disabled){border-color:#3a5470}
-button.btn:disabled{opacity:.45;cursor:not-allowed}
-button.btn.primary{background:linear-gradient(180deg,#38bdf8,#0ea5e9);color:#04121a;border-color:#38bdf8;font-weight:700}
-button.btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+/* 设备球 */
+.device{display:flex;gap:18px;align-items:center}
+.orb{width:96px;height:96px;border-radius:50%;flex:0 0 auto;position:relative;display:grid;place-items:center;
+  border:1px solid rgba(34,211,238,.28);background:radial-gradient(circle at 50% 40%,rgba(34,211,238,.18),rgba(4,8,12,.9) 68%)}
+.orb::before,.orb::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:1px solid rgba(34,211,238,.22);animation:ring 3.2s ease-out infinite}
+.orb::after{animation-delay:1.6s}
+@keyframes ring{0%{transform:scale(.86);opacity:.8}100%{transform:scale(1.35);opacity:0}}
+.orb .core{width:10px;height:10px;border-radius:50%;background:var(--cy);box-shadow:0 0 22px var(--cy)}
+.orb.on{border-color:rgba(74,222,128,.45);background:radial-gradient(circle at 50% 40%,rgba(74,222,128,.2),rgba(4,10,8,.9) 68%)}
+.orb.on .core{background:var(--gr);box-shadow:0 0 22px var(--gr)}
+.orb.on::before,.orb.on::after{border-color:rgba(74,222,128,.3)}
+.orb.busy{animation:spin 2.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.devinfo{flex:1;min-width:0}
+.devinfo .t1{font-size:15px;font-weight:600}
+.devinfo .t2{font:10.5px var(--mono);color:var(--mut);margin-top:5px;letter-spacing:.06em;word-break:break-all}
+.meter{display:flex;gap:3px;height:22px;align-items:flex-end;margin-top:12px}
+.meter i{flex:1;background:linear-gradient(180deg,var(--cy),rgba(34,211,238,.15));border-radius:2px;height:8%;transition:height .12s}
+
+/* 按钮 */
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+button.btn,a.btn{position:relative;overflow:hidden;font-family:var(--sans);font-size:13px;border-radius:10px;
+  padding:11px 20px;cursor:pointer;border:1px solid var(--line2);background:rgba(16,24,35,.8);color:var(--txt);
+  text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:.18s}
+button.btn:hover:not(:disabled),a.btn:hover{border-color:rgba(34,211,238,.5);transform:translateY(-1px);
+  box-shadow:0 8px 26px rgba(34,211,238,.14)}
+button.btn:disabled{opacity:.38;cursor:not-allowed}
+button.btn.primary,a.btn.primary{background:linear-gradient(135deg,#22d3ee,#0ea5e9 60%,#6366f1);color:#03121a;border:0;font-weight:700;
+  box-shadow:0 10px 30px rgba(34,211,238,.28)}
+button.btn.primary::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);
+  transform:translateX(-120%);transition:transform .6s}
+button.btn.primary:hover::after{transform:translateX(120%)}
 button.btn.ghost{background:transparent}
-.status{font:11px var(--mono);color:var(--mut)}
-.status .ok{color:var(--ok)}
+.status{font:10.5px var(--mono);color:var(--mut)}
+.status .ok{color:var(--gr)} .status .bad{color:var(--rd)} .status .warnc{color:var(--am)}
 
-.msg{margin-top:10px;font-size:12px;line-height:1.7;color:#8fa1b5;display:none}
-.msg.show{display:block}
-.msg b{color:var(--txt)}
+/* 固件卡 */
+.fw{border-color:rgba(167,139,250,.28);background:linear-gradient(180deg,rgba(28,22,48,.6),rgba(10,12,20,.75))}
+.fw .big{font-size:20px;font-weight:700;letter-spacing:.01em}
+.fw .big em{font-style:normal;font:10px var(--mono);letter-spacing:.16em;color:var(--vi);margin-left:8px;vertical-align:middle}
+.fw dl{display:grid;grid-template-columns:74px 1fr;gap:7px 10px;margin:14px 0 0;font-size:12px}
+.fw dt{font:9.5px var(--mono);letter-spacing:.12em;color:#5d6f85;padding-top:2px}
+.fw dd{margin:0;font:11px var(--mono);color:#cfe0f2;word-break:break-all}
+.fw .sha{color:#8fa6bd}
+.badge{display:inline-flex;align-items:center;gap:6px;font:9.5px var(--mono);letter-spacing:.1em;
+  border-radius:999px;padding:4px 9px;border:1px solid rgba(74,222,128,.4);color:var(--gr);background:rgba(74,222,128,.08)}
+.badge.bad{border-color:rgba(248,113,113,.4);color:var(--rd);background:rgba(248,113,113,.08)}
 
-.logbox{margin-top:16px}
-.log{background:#05080c;border:1px solid #16202c;border-radius:9px;padding:10px 12px;height:150px;overflow:auto;font:11px/1.75 var(--mono);color:#8ea3b8}
+/* 控制台 */
+.console{border-color:rgba(34,211,238,.18)}
+.log{height:190px;overflow:auto;background:#04070b;border:1px solid #12202c;border-radius:10px;
+  padding:10px 12px;font:10.5px/1.8 var(--mono);color:#8ea3b8}
 .log div{white-space:pre-wrap;word-break:break-all}
-.log .t{color:#3f5163}
-.log .e{color:#f87171}
-.log .s{color:#4ade80}
-.log .w{color:#fbbf24}
-.loghead{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
-.loghead h2{margin:0;font-size:11px;letter-spacing:.2em;color:var(--mut);font-weight:600}
-.loghead button{font-size:11px;background:transparent;border:1px solid var(--line2);border-radius:6px;color:var(--mut);padding:5px 10px;cursor:pointer;font-family:var(--sans)}
-.loghead button:hover{color:var(--txt)}
+.log .t{color:#35485c}
+.log .e{color:var(--rd)} .log .s{color:var(--gr)} .log .w{color:var(--am)}
+.caret{display:inline-block;width:7px;height:12px;background:var(--cy);vertical-align:-2px;animation:caret 1s steps(2) infinite}
+@keyframes caret{50%{opacity:0}}
 
-.note{margin-top:22px;background:#0b0a07;border:1px solid #2a2417;border-radius:12px;padding:16px 20px;font-size:12.5px;line-height:1.9;color:#c4b9a2}
-.note b{color:#f5e6c8}
-.note a{color:#fbbf24;text-decoration:none}
-.note a:hover{text-decoration:underline}
-footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
+/* 底部 */
+footer{position:relative;z-index:2;max-width:1080px;margin:0 auto;padding:10px 22px 50px;font-size:11px;color:#4f6176;line-height:1.9}
+footer a{color:#7f93a9;text-decoration:none}
+footer a:hover{color:var(--txt)}
 
-@media (max-width:720px){ .build{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .hero{padding:38px 0 20px}
+  .pills{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .bg .grid,.blob,.orb::before,.orb::after,.pill.on i,.caret{animation:none}
+}
 </style>
 </head>
 <body>
 
+<div class="bg">
+  <div class="grid"></div>
+  <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+</div>
+<div class="scan"></div>
+
 <header class="nav">
-  <div class="wrap">
-    <a class="brand" href="../">PLANT<span>-1</span></a>
-    <a class="back" href="../">← 返回</a>
+  <a class="brand" href="../">PLANT<span>-1</span></a>
+  <a class="back" href="../">← 返回</a>
+  <div class="pills">
+    <span class="pill" id="pillAudio"><i></i>AUDIO</span>
+    <span class="pill" id="pillMidi"><i></i>MIDI</span>
+    <span class="pill" id="pillSw"><i></i>OFFLINE</span>
   </div>
 </header>
 
 <main class="wrap">
-  <div class="crumb">INSTALL / 安装</div>
-  <h1>安装 PLANT-1</h1>
-  <p class="lead">
-    把合成器装到本机，之后断网也能打开；顺手可以把 <b>M-VAVE FM-1</b> 接进来当键盘和旋钮。
-    整个过程不需要刷机，大约一分钟。
-  </p>
-
-  <section class="card before">
-    <h2><span class="dot"></span>开始之前</h2>
-    <ul>
-      <li>用桌面版 <b>Chrome 或 Edge</b>（需要 Web Audio；Firefox 也能弹，但安装体验不同）。</li>
-      <li>想接 FM-1 的话：用 <b>USB 数据线</b>直连电脑并开机，关掉其它占用它 MIDI 端口的软件。</li>
-      <li class="hint">PLANT-1 是浏览器固件，<b>不会写入 FM-1 的 flash</b>，不会变砖，也不会动你的工程和音色。</li>
-    </ul>
-  </section>
-
-  <section class="build">
-    <div><span class="k">VERSION</span><span class="v">1.0.0</span></div>
-    <div><span class="k">IDENTITY</span><span class="v">PLANT1-WEB</span></div>
-    <div><span class="k">BUILD</span><span class="v">2026-11-17</span></div>
-    <div><span class="k">SIZE</span><span class="v" id="sizeVal">132 KB</span></div>
-  </section>
-
-  <section class="card step">
-    <h2><span class="dot"></span>1 · 环境检查</h2>
-    <div class="rows" id="rows">
-      <div class="row"><span class="mark idle" data-m="browser">·</span><span class="name">浏览器</span><span class="val" data-v="browser">检测中…</span></div>
-      <div class="row"><span class="mark idle" data-m="audio">·</span><span class="name">Web Audio</span><span class="val" data-v="audio">检测中…</span></div>
-      <div class="row"><span class="mark idle" data-m="midi">·</span><span class="name">Web MIDI（接 FM-1 用）</span><span class="val" data-v="midi">检测中…</span></div>
-      <div class="row"><span class="mark idle" data-m="sw">·</span><span class="name">离线缓存</span><span class="val" data-v="sw">检测中…</span></div>
+  <section class="hero">
+    <div class="kicker">FM-1 · BROWSER FIRMWARE · INSTALLER</div>
+    <h1>PLANT<span>-1</span></h1>
+    <p class="lead">
+      把合成器装到本机，断网也能开；顺手把 <b>M-VAVE FM-1</b> 接进来当键盘和旋钮。
+      不刷机、不改固件，大约一分钟。
+    </p>
+    <div class="chips">
+      <span class="chip glow" id="chipVersion">v—</span>
+      <span class="chip" id="chipProduct">FM-1_—</span>
+      <span class="chip" id="chipSize">— KB</span>
+      <span class="chip" id="chipSha">SHA-256 校验中</span>
     </div>
   </section>
 
-  <section class="card step">
-    <h2><span class="dot" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>2 · 连接 FM-1（可选）</h2>
-    <div class="actions">
-      <button class="btn" id="btnMidi">连接 FM-1</button>
-      <span class="status" id="midiStatus">未连接</span>
+  <section class="grid">
+    <div class="col">
+
+      <article class="card" id="stepEnv">
+        <h2><span class="num">1</span>环境检查<span class="hint">LIVE</span></h2>
+        <div class="rows" id="rows">
+          <div class="row"><span class="mark" data-m="browser">·</span><span class="name">浏览器</span><span class="val" data-v="browser">检测中…</span></div>
+          <div class="row"><span class="mark" data-m="audio">·</span><span class="name">Web Audio</span><span class="val" data-v="audio">检测中…</span></div>
+          <div class="row"><span class="mark" data-m="midi">·</span><span class="name">Web MIDI（接 FM-1 用）</span><span class="val" data-v="midi">检测中…</span></div>
+          <div class="row"><span class="mark" data-m="sw">·</span><span class="name">离线缓存</span><span class="val" data-v="sw">检测中…</span></div>
+        </div>
+      </article>
+
+      <article class="card" id="stepDev">
+        <h2><span class="num">2</span>连接 FM-1<span class="hint">OPTIONAL</span></h2>
+        <div class="device">
+          <div class="orb" id="orb"><span class="core"></span></div>
+          <div class="devinfo">
+            <div class="t1" id="devTitle">没有设备</div>
+            <div class="t2" id="devSub">用 USB 数据线连上，然后点连接</div>
+            <div class="meter" id="meter"></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btnMidi">连接 FM-1</button>
+          <span class="status" id="midiStatus">未连接</span>
+        </div>
+        <div class="msg" id="midiMsg"></div>
+      </article>
+
+      <article class="card" id="stepInstall">
+        <h2><span class="num">3</span>安装到本机<span class="hint">PWA</span></h2>
+        <div class="actions">
+          <button class="btn primary" id="btnInstall">安装</button>
+          <a class="btn" href="../play/" id="btnOpen">打开合成器 →</a>
+          <span class="status" id="installStatus">等待开始</span>
+        </div>
+        <div class="msg" id="installMsg"></div>
+      </article>
+
+      <article class="card" id="stepDone">
+        <h2><span class="num">4</span>完成<span class="hint">READY</span></h2>
+        <div class="msg show" id="openMsg">
+          装好后从桌面图标打开；没有安装提示也可以直接收藏本页。真机固件在
+          <a href="../flash/" style="color:var(--cy)">刷写页</a>。
+        </div>
+      </article>
+
     </div>
-    <div class="msg" id="midiMsg"></div>
-    <div class="rows" id="devRows"></div>
+
+    <aside class="col">
+      <article class="card fw">
+        <h2><span class="num" style="background:linear-gradient(135deg,var(--vi),#6366f1);box-shadow:0 0 14px rgba(167,139,250,.45)">F</span>固件<span class="hint">PLANT-1</span></h2>
+        <div class="big" id="fwName">PLANT-1</div>
+        <div style="margin-top:8px"><span class="badge" id="fwBadge">校验中</span></div>
+        <dl>
+          <dt>版本</dt><dd id="fwVersion">—</dd>
+          <dt>身份</dt><dd id="fwProduct">—</dd>
+          <dt>大小</dt><dd id="fwSize">—</dd>
+          <dt>SHA-256</dt><dd class="sha" id="fwSha">—</dd>
+        </dl>
+        <div class="actions">
+          <a class="btn ghost" href="../flash/" style="font-size:12px;padding:8px 14px">真机刷写页 →</a>
+        </div>
+      </article>
+
+      <article class="card console">
+        <h2><span class="num" style="background:linear-gradient(135deg,var(--gr),#16a34a);box-shadow:0 0 14px rgba(74,222,128,.4)">›</span>控制台
+          <button id="btnSaveLog" style="margin-left:auto;font:9px var(--mono);letter-spacing:.1em;background:none;border:1px solid var(--line);color:var(--mut);border-radius:6px;padding:4px 8px;cursor:pointer">保存日志</button>
+        </h2>
+        <div class="log" id="log"></div>
+      </article>
+    </aside>
   </section>
-
-  <section class="card step">
-    <h2><span class="dot" style="background:#4ade80;box-shadow:0 0 8px #4ade80"></span>3 · 安装到本机</h2>
-    <div class="actions">
-      <button class="btn primary" id="btnInstall">安装</button>
-      <span class="status" id="installStatus">等待开始</span>
-    </div>
-    <div class="msg" id="installMsg"></div>
-  </section>
-
-  <section class="card step">
-    <h2><span class="dot" style="background:#fb923c;box-shadow:0 0 8px #fb923c"></span>4 · 完成</h2>
-    <div class="actions">
-      <a class="btn primary" href="../play/" id="btnOpen" style="text-decoration:none">打开合成器 →</a>
-      <button class="btn ghost" id="btnReload">重新检查</button>
-    </div>
-    <div class="msg show" id="openMsg">
-      装好之后，从桌面或开始菜单的 <b>PLANT-1</b> 图标打开即可；也可以直接 <b>收藏这个页面</b>。
-    </div>
-  </section>
-
-  <div class="loghead">
-    <h2>日志</h2>
-    <button id="btnSaveLog">保存日志</button>
-  </div>
-  <div class="logbox"><div class="log" id="log"></div></div>
-
-  <section class="note">
-    <b>关于真机固件：</b>PLANT-1 跑在浏览器里，所以这里的「安装」是把合成器装成本机应用，
-    并把 FM-1 当作控制器接入；它<b>不会</b>替换 FM-1 里的固件，也不需要 M-UPGRADE。
-    想把 <code>.fwsc</code> 固件写进设备，用本仓库的 <a href="../flash/">刷写页</a>；
-    固件来源可以是
-    <a href="https://github.com/charlesvestal/fm1-base" target="_blank" rel="noreferrer">fm1-base</a>
-    的工具链或社区固件（Golf、fm1-dock、OG Synth）。恢复原厂固件用 M-VAVE 自己的升级工具。
-  </section>
-
-  <footer>
-    与 Kilohearts（Phase Plant）、M-VAVE（FM-1）均无隶属关系。
-  </footer>
 </main>
 
+<footer>
+  <div>PLANT-1 · 与 Kilohearts（Phase Plant）、M-VAVE（FM-1）均无隶属关系。</div>
+  <div style="margin-top:4px">装机 = 离线应用 + 可选控制器；真机固件请走 <a href="../flash/">刷写页</a>。</div>
+</footer>
+
+<script src="../flash/meta.js"></script>
 <script>
 (function () {
   'use strict';
@@ -192,10 +301,10 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
     s.className = 't';
     s.textContent = t + '  ';
     d.appendChild(s);
-    var body = document.createElement('span');
-    if (cls) body.className = cls;
-    body.textContent = msg;
-    d.appendChild(body);
+    var b = document.createElement('span');
+    b.className = cls || '';
+    b.textContent = msg;
+    d.appendChild(b);
     logEl.appendChild(d);
     logEl.scrollTop = logEl.scrollHeight;
   }
@@ -204,9 +313,11 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
     var v = document.querySelector('[data-v="' + key + '"]');
     if (m) { m.textContent = ok ? '✓' : '×'; m.className = 'mark ' + (ok ? 'ok' : 'no'); }
     if (v) { v.textContent = text; v.className = 'val ' + (cls || ''); }
+    var pill = { browser: null, audio: $('pillAudio'), midi: $('pillMidi'), sw: $('pillSw') }[key];
+    if (pill) pill.className = 'pill ' + (ok ? 'on' : 'warn');
   }
 
-  /* 1. 环境检查 */
+  /* 1. 环境 */
   var ua = navigator.userAgent;
   var isChromium = /Chrome\/|Edg\//.test(ua) && !/Firefox|OPR/.test(ua);
   var isFirefox = /Firefox/.test(ua);
@@ -214,29 +325,61 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
   var hasMidi = !!navigator.requestMIDIAccess;
   var hasSW = 'serviceWorker' in navigator && location.protocol !== 'file:';
 
-  mark('browser', isChromium || isFirefox,
-    (isChromium ? 'Chromium ' : isFirefox ? 'Firefox ' : '其它 ') + (navigator.userAgentData ? '' : ''),
-    isChromium ? 'ok' : 'warnc');
+  mark('browser', isChromium || isFirefox, isChromium ? 'Chromium' : isFirefox ? 'Firefox' : '其它', isChromium ? 'ok' : 'warnc');
   mark('audio', hasAudio, hasAudio ? '可用' : '不可用', hasAudio ? 'ok' : 'no');
-  mark('midi', hasMidi, hasMidi ? '可用' : '不可用（仅影响 FM-1）', hasMidi ? 'ok' : 'warnc');
-  mark('sw', hasSW, hasSW ? '可用' : '不可用（file:// 或旧浏览器）', hasSW ? 'ok' : 'warnc');
-
+  mark('midi', hasMidi, hasMidi ? '可用' : '不可用', hasMidi ? 'ok' : 'warnc');
+  mark('sw', hasSW, hasSW ? '可用' : '不可用', hasSW ? 'ok' : 'warnc');
   log('环境：' + (isChromium ? 'Chromium' : isFirefox ? 'Firefox' : '其它') + ' · Web Audio ' + (hasAudio ? '可用' : '不可用'));
   log('Web MIDI ' + (hasMidi ? '可用' : '不可用'), hasMidi ? null : 'w');
   log('离线缓存 ' + (hasSW ? '可用' : '不可用'), hasSW ? null : 'w');
 
-  /* 2. 连接 FM-1 */
+  /* 固件信息 */
+  (async function () {
+    var m = window.PLANT1_FW || null;
+    if (!m) {
+      try {
+        var r = await fetch('../downloads/firmware.json', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        m = await r.json();
+      } catch (e) {
+        $('fwBadge').className = 'badge bad';
+        $('fwBadge').textContent = '读取失败';
+        $('chipSha').textContent = 'SHA-256 未知';
+        log('读取固件信息失败：' + e.message, 'w');
+        return;
+      }
+    }
+    $('fwName').textContent = m.name;
+    $('fwVersion').textContent = 'v' + m.version;
+    $('fwProduct').textContent = m.product;
+    $('fwSize').textContent = (m.bytes / 1024).toFixed(0) + ' KB';
+    $('fwSha').textContent = m.sha256;
+    $('fwBadge').textContent = '已校验 SHA-256';
+    $('chipVersion').textContent = 'v' + m.version;
+    $('chipProduct').textContent = m.product;
+    $('chipSize').textContent = (m.bytes / 1024).toFixed(0) + ' KB';
+    $('chipSha').textContent = m.sha256.slice(0, 12) + '…';
+    log('固件：' + m.name + ' v' + m.version + ' · ' + m.product, 's');
+  })();
+
+  /* 2. 连接 */
   var midiAccess = null;
+  var meterEl = $('meter');
+  for (var i = 0; i < 12; i++) { var b0 = document.createElement('i'); meterEl.appendChild(b0); }
+  var meterBars = meterEl.children;
+
   $('btnMidi').addEventListener('click', async function () {
     if (!hasMidi) { log('这个浏览器不支持 Web MIDI', 'e'); return; }
     $('btnMidi').disabled = true;
-    $('midiStatus').textContent = '正在请求 MIDI 权限…';
+    $('midiStatus').textContent = '请求 MIDI 权限…';
+    $('orb').classList.add('busy');
     log('请求 MIDI 权限…');
     try {
       midiAccess = await navigator.requestMIDIAccess({ sysex: false });
     } catch (err) {
       $('btnMidi').disabled = false;
-      $('midiStatus').textContent = '被拒绝';
+      $('orb').classList.remove('busy');
+      $('midiStatus').innerHTML = '<span class="bad">被拒绝</span>';
       log('MIDI 权限被拒绝：' + err.message, 'e');
       return;
     }
@@ -246,12 +389,11 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
   });
 
   function showDevices() {
-    var rows = $('devRows');
-    rows.innerHTML = '';
     var list = [];
     midiAccess.inputs.forEach(function (i) { list.push(i); });
     if (!list.length) {
       $('midiStatus').textContent = '没有找到 MIDI 输入';
+      $('orb').classList.remove('busy');
       log('没有找到 MIDI 输入设备，检查 USB 数据线和电源', 'w');
       return;
     }
@@ -259,43 +401,43 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
     list.forEach(function (input) {
       var isFM1 = /fm[-\s]?1|m[-\s]?vave/i.test(input.name || '');
       if (isFM1 && !fm1) fm1 = input;
-      var row = document.createElement('div');
-      row.className = 'row';
-      row.innerHTML = '<span class="mark ' + (isFM1 ? 'ok' : 'idle') + '">' + (isFM1 ? '✓' : '·') + '</span>' +
-        '<span class="name">' + (input.name || '(未命名)') + '</span>' +
-        '<span class="val">' + (isFM1 ? 'FM-1' : 'MIDI 输入') + '</span>';
-      rows.appendChild(row);
       log('发现 MIDI 设备：' + (input.name || '(未命名)'));
     });
     if (fm1) {
-      $('midiStatus').innerHTML = '<span class="ok">已连接：' + fm1.name + '</span>';
-      $('midiMsg').classList.add('show');
-      $('midiMsg').innerHTML = '<b>FM-1 已就绪。</b>回到合成器页面，它的 27 键（note 53–79）、7 个旋钮（CC 20–26）和按键（CC 40–53）会直接可用。';
-      fm1.onmidimessage = function (m) {
-        var d = m.data;
+      $('orb').classList.remove('busy');
+      $('orb').classList.add('on');
+      $('devTitle').textContent = fm1.name || 'FM-1';
+      $('devSub').textContent = 'USB MIDI 已连接 · 键盘与旋钮可直接使用';
+      $('midiStatus').innerHTML = '<span class="ok">已连接</span>';
+      $('midiMsg').className = 'msg show';
+      $('midiMsg').innerHTML = '<b>FM-1 已就绪。</b>回到合成器页面，27 键（note 53–79）、7 个旋钮（CC 20–26）和按键（CC 40–53）直接可用。';
+      log('FM-1 已连接：' + (fm1.name || '?'), 's');
+      fm1.onmidimessage = function (msg) {
+        var d = msg.data;
+        var lvl = (d[2] || 0) / 127;
+        for (var k = 0; k < meterBars.length; k++)
+          meterBars[k].style.height = (k / meterBars.length < lvl ? 30 + Math.random() * 70 : 8) + '%';
         if ((d[0] & 0xf0) === 0x90 && d[2] > 0) log('按键 note ' + d[1] + ' 力度 ' + d[2]);
       };
-      log('FM-1 已连接：' + fm1.name, 's');
     } else {
+      $('orb').classList.remove('busy');
       $('midiStatus').textContent = '找到了 MIDI 设备，但都不是 FM-1';
       log('设备名里没有 FM-1 / M-VAVE，仍可在合成器里当普通 MIDI 用', 'w');
     }
   }
 
-  /* 3. 安装（PWA） */
+  /* 3. 安装 */
   var deferred = null;
-  var installed = false;
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     deferred = e;
     $('installStatus').innerHTML = '<span class="ok">可以安装</span>';
-    $('btnInstall').disabled = false;
     log('浏览器提供了安装入口', 's');
   });
   window.addEventListener('appinstalled', function () {
-    installed = true;
     $('installStatus').innerHTML = '<span class="ok">已安装</span>';
     $('btnInstall').disabled = true;
+    $('stepInstall').classList.add('step-done');
     log('PLANT-1 已安装到本机', 's');
   });
 
@@ -308,6 +450,7 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
       log('安装结果：' + (res.outcome === 'accepted' ? '已接受' : '已取消'), res.outcome === 'accepted' ? 's' : 'w');
       if (res.outcome === 'accepted') {
         $('installStatus').innerHTML = '<span class="ok">已安装</span>';
+        $('stepInstall').classList.add('step-done');
       } else {
         $('installStatus').textContent = '已取消';
         $('btnInstall').disabled = false;
@@ -315,12 +458,8 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
       deferred = null;
       return;
     }
-    // 没有安装提示：注册离线缓存，并给出手动安装方法
     $('installMsg').classList.add('show');
-    $('installMsg').innerHTML =
-      '浏览器这次没有给出安装入口。你可以：<br>' +
-      '① 在地址栏右侧点 <b>安装</b> 图标，或菜单 <b>应用 → 安装此站点</b>；<br>' +
-      '② 直接把这个页面 <b>加入书签</b>，合成器本身是单文件，缓存后断网也能开。';
+    $('installMsg').innerHTML = '浏览器这次没有给出安装入口：地址栏右侧点 <b>安装</b>，或菜单 <b>应用 → 安装此站点</b>；也可以直接收藏本页。';
     $('installStatus').textContent = '请手动安装';
     log('没有 beforeinstallprompt，改为手动安装说明', 'w');
     try {
@@ -332,7 +471,6 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
     $('btnInstall').disabled = false;
   });
 
-  /* 打开合成器时顺带注册缓存 */
   $('btnOpen').addEventListener('click', function () {
     if (hasSW) {
       navigator.serviceWorker.register('../play/sw.js', { scope: '../play/' })
@@ -341,10 +479,8 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
     }
   });
 
-  /* 保存日志 */
   $('btnSaveLog').addEventListener('click', function () {
-    var text = logEl.innerText;
-    var blob = new Blob([text], { type: 'text/plain' });
+    var blob = new Blob([logEl.innerText], { type: 'text/plain' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'plant1-install-log.txt';
@@ -352,18 +488,6 @@ footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
     log('日志已保存');
   });
-
-  $('btnReload').addEventListener('click', function () { location.reload(); });
-
-  /* 预填大小 */
-  fetch('../play/index.html', { method: 'HEAD' }).then(function (r) {
-    var len = r.headers.get('content-length');
-    if (len) {
-      var kb = Math.round(len / 1024);
-      $('sizeVal').textContent = kb + ' KB';
-      log('固件体积：' + kb + ' KB');
-    }
-  }).catch(function () { });
 
   log('安装页就绪', 's');
 })();
