@@ -257,6 +257,7 @@ let official = null;
     official = await r.json();
     $('officialMeta').textContent = 'v' + official.version + ' · ' + official.product + ' · ' + bytes(official.bytes);
     $('officialSha').textContent = 'sha256 ' + official.sha256;
+    $('btnOfficial').textContent = '载入 ' + official.name;
     $('btnOfficial').disabled = false;
     log('官方构建：' + official.name + ' ' + official.version + ' · ' + official.product);
   } catch (e) {

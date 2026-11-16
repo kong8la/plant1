@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M0",
-  "version": "0.1.0",
-  "product": "FM-1_9000",
-  "file": "plant1m0.fwsc",
+  "name": "PLANT-1 M1",
+  "version": "0.2.0",
+  "product": "FM-1_9100",
+  "file": "plant1m1.fwsc",
   "bytes": 616003,
-  "sha256": "ac0182d43da4a69b61dca5f0c55b9ad571cde50a0cf6ec309fc599167f362ff7",
+  "sha256": "19774c55abab0514d85c4647240829bc32d3102a8e30eabfa5c363fd7512eb47",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/43972303336",
-  "notes": "M0: one FM voice, one ADSR, the 27 keys, a 240x240 screen. Lowest held key wins."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/43973769543",
+  "notes": "M1: 4 generator slots (analog, wavetable, FM, noise), a TPT filter per slot, unison 1-3, 6 voices, GEN/FILTER/VOICE pages on SEL, EDIT and K1-K4."
 }
