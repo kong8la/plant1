@@ -11,3 +11,6 @@ test/fixtures/*.fwsc
 .deploy/
 .chrome-live/
 
+.chrome-flash/
+.chrome-*/
+
