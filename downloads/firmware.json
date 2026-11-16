@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M2",
-  "version": "0.3.1",
-  "product": "FM-1_9200",
-  "file": "plant1m2.fwsc",
+  "name": "PLANT-1 M3",
+  "version": "0.4.0",
+  "product": "FM-1_9300",
+  "file": "plant1m3.fwsc",
   "bytes": 616003,
-  "sha256": "201385e844d6783f86a807b1b307c5be5a167443628b0d3f2267ae1cae6bb672",
+  "sha256": "34d4e06c6d26e755a178aefe555888c92aeb749ed20d79ee343551d34a15f293",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/43977777831",
-  "notes": "M2: eight presets, editable ADSR with its curve, an LFO (shape/rate/amount/target), patch storage in flash, a screen that draws each slot's waveform, the envelope and the LFO, and LED animations (idle scanner, fading key tails, preset sweep, page blink, octave indicators)."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/43979035587",
+  "notes": "M3: a five-slot effect chain (drive, chorus, delay, reverb, compressor) with an FX page, four patch slots in flash, and per-preset effects. M2 gave presets, envelopes, an LFO and a screen that draws the sound."
 }
