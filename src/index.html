@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0f16'/%3E%3Cpath d='M10 44 L22 20 L34 44 L46 20 L54 36' stroke='%2338bdf8' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<title>PLANT-1 · FM-1 模块化固件</title>
+<meta name="theme-color" content="#07090d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="description" content="Phase Plant 思路的模块化合成器，做成 M-VAVE FM-1 的样子，单文件跑在浏览器里。" />
+<style>/*@CSS*/</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>PLANT<span>-1</span></b><i>FM-1 MODULAR FIRMWARE</i></div>
+  <div class="preset">
+    <button class="pbtn" id="pPrev" title="上一个音色">&#9664;</button>
+    <button class="pname" id="pName"><b id="presetName">初始化</b><i id="presetEn">INIT</i></button>
+    <div class="plist" id="presetList"></div>
+    <button class="pbtn" id="pNext" title="下一个音色">&#9654;</button>
+  </div>
+  <div class="screen">
+    <canvas id="scope" width="500" height="84"></canvas>
+    <div class="sline"><span id="sPreset">INIT</span><span id="sVoices" class="dim">0 V</span></div>
+  </div>
+  <div class="acts">
+    <button data-act="init" title="初始化音色">INIT</button>
+    <button data-act="rand" title="随机生成音色">随机</button>
+    <button data-act="audition" title="试听当前音色">试听</button>
+    <button data-act="save" title="导出音色 JSON">导出</button>
+    <button data-act="load" title="导入音色 JSON">导入</button>
+    <button data-act="flash" class="go" title="写入 FM-1（模拟）">FLASH</button>
+    <button data-act="panic" class="hot" title="全部静音">静音</button>
+  </div>
+  <input id="fileIn" type="file" accept=".json,application/json" hidden />
+</header>
+
+<main id="main">
+  <section class="col" id="colVoice"></section>
+  <section class="gens" id="colGens"></section>
+  <section class="col" id="colMods"></section>
+</main>
+
+<section class="fxrow" id="fxrow"></section>
+
+<footer class="keys">
+  <div class="kwrap">
+    <div class="kctrl">
+      <button id="octDown" title="降低八度">&#9664; 八度</button>
+      <button id="octUp" title="升高八度">八度 &#9654;</button>
+      <button id="holdBtn" title="保持音">保持 OFF</button>
+    </div>
+    <div class="kbd" id="kbd"></div>
+  </div>
+  <div class="khint" id="khint">电脑键盘 Z–M / Q–U 演奏 · &#8593;&#8595; 换八度 · 把调制器标签（ENV1 / LFO1 …）拖到任意旋钮上即可建立调制 · 双击旋钮复位 · 右键旋钮清除该参数调制</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+<div class="dropmod" id="dropMod"></div>
+
+<script id="engine-src" type="text/plain">/*@ENGINE*/</script>
+<script id="presets-src" type="text/plain">/*@PRESETS*/</script>
+<script>
+  /* 装了离线缓存：断网也能打开（file:// 打开时自动跳过） */
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', function () {
+      var link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = 'manifest.webmanifest';
+      document.head.appendChild(link);
+      navigator.serviceWorker.register('sw.js').catch(function () { });
+    });
+  }
+</script>
+<script>/*@UI*/</script>
+</body>
+</html>

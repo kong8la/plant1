@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PLANT-1 · 跑在浏览器里的 FM-1 模块化固件</title>
+<meta name="description" content="PLANT-1 是一台 Phase Plant 思路的模块化合成器，做成 M-VAVE FM-1 固件的样子，单文件跑在浏览器里。" />
+<link rel="icon" href="assets/icon.svg" />
+<style>
+:root{
+  --bg:#07090d; --panel:#0d1219; --line:#1c2634; --line2:#263343;
+  --txt:#dce7f4; --mut:#7a8a9e; --gen:#38bdf8; --mod:#a78bfa; --fx:#fb923c; --ok:#4ade80;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,monospace;
+  --sans:ui-sans-serif,"Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:
+    radial-gradient(1100px 520px at 15% -8%, rgba(56,189,248,.09), transparent 62%),
+    radial-gradient(900px 480px at 92% 106%, rgba(167,139,250,.08), transparent 60%),
+    var(--bg);
+  color:var(--txt); font-family:var(--sans); -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+
+/* 顶栏 */
+.nav{display:flex;align-items:center;gap:18px;height:64px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(8,11,16,.82);backdrop-filter:blur(10px);z-index:20}
+.nav .brand{font-weight:700;letter-spacing:.16em;font-size:16px}
+.nav .brand span{color:var(--gen)}
+.nav .sub{font:9px/1 var(--mono);letter-spacing:.18em;color:var(--mut)}
+.nav .links{margin-left:auto;display:flex;gap:18px;font-size:13px;color:var(--mut)}
+.nav .links a{text-decoration:none}
+.nav .links a:hover{color:var(--txt)}
+.nav .gh{font:11px var(--mono);border:1px solid var(--line2);border-radius:6px;padding:6px 10px;color:var(--mut);text-decoration:none}
+.nav .gh:hover{color:var(--txt);border-color:#33506b}
+
+/* hero */
+.hero{padding:74px 0 30px;text-align:center}
+.tag{font:10px/1 var(--mono);letter-spacing:.26em;color:var(--gen);opacity:.9}
+h1{font-size:clamp(52px,9vw,104px);line-height:.95;letter-spacing:.02em;margin:18px 0 0;font-weight:800}
+h1 span{color:var(--gen)}
+.lead{font-size:clamp(15px,1.6vw,19px);line-height:1.75;color:#a9b8ca;max-width:660px;margin:20px auto 0}
+.lead b{color:var(--txt);font-weight:600}
+.cta{display:flex;gap:12px;justify-content:center;margin-top:30px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14px;
+  border:1px solid var(--line2);border-radius:9px;padding:12px 22px;color:var(--txt);
+  background:var(--panel);transition:.15s;
+}
+.btn:hover{border-color:#38506a;transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(180deg,#38bdf8,#0ea5e9);color:#04121a;border-color:#38bdf8;font-weight:700}
+.btn.primary:hover{filter:brightness(1.08)}
+.meta{margin-top:18px;font:10px/1.6 var(--mono);letter-spacing:.12em;color:#5b6b80}
+
+/* 截图 */
+.shot{margin:44px 0 8px;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.55);background:#05070a}
+.shot img{display:block;width:100%;height:auto}
+
+/* 特性 */
+.feats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:46px 0 10px}
+.card{background:linear-gradient(180deg,#0f1620,#0a0f16);border:1px solid var(--line);border-radius:12px;padding:16px 16px 18px}
+.card h3{margin:0 0 8px;font-size:13px;letter-spacing:.04em}
+.card p{margin:0;font-size:12px;line-height:1.7;color:var(--mut)}
+.card .k{font:9px var(--mono);letter-spacing:.2em;color:var(--gen);display:block;margin-bottom:9px}
+.card:nth-child(2) .k{color:var(--mod)}
+.card:nth-child(3) .k{color:var(--fx)}
+.card:nth-child(4) .k{color:var(--ok)}
+
+/* 说明 */
+.notes{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin:12px 0 60px}
+.note{background:#0a0e14;border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.note h3{margin:0 0 10px;font-size:12px;letter-spacing:.16em;color:var(--mut);font-weight:600}
+.note ul{margin:0;padding-left:18px;font-size:13px;line-height:1.9;color:#b3c1d2}
+.note li b{color:var(--txt);font-weight:600}
+.note p{margin:0;font-size:13px;line-height:1.9;color:#b3c1d2}
+.note .warn{color:#fbbf24}
+.note a{color:var(--gen);text-decoration:none}
+.note a:hover{text-decoration:underline}
+
+footer{border-top:1px solid var(--line);padding:22px 0 34px;font-size:11px;color:#516072;line-height:1.9}
+footer a{color:#7f93a9;text-decoration:none}
+footer a:hover{color:var(--txt)}
+
+@media (max-width:1240px){ .feats{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:860px){
+  .nav .links{display:none}
+  .notes{grid-template-columns:1fr}
+  .hero{padding:48px 0 20px}
+}
+@media (max-width:560px){ .feats{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap" style="display:flex;align-items:center;gap:18px;width:100%">
+    <div class="brand">PLANT<span>-1</span></div>
+    <div class="sub">FM-1 MODULAR FIRMWARE</div>
+    <nav class="links">
+      <a href="./install/">安装</a>
+      <a href="./play/">试玩</a>
+      <a href="#features">特性</a>
+      <a href="#about">关于</a>
+    </nav>
+    <a class="gh" href="#about">v1.0.0</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="tag">M-VAVE FM-1 · COMMUNITY FIRMWARE</div>
+    <h1>PLANT<span>-1</span></h1>
+    <p class="lead">
+      把 <b>Phase Plant</b> 那套「发生器 / 调制器 / 效果器」模块化思路，
+      做成 <b>FM-1</b> 的样子：27 键、TFT 小屏、袖珍机身。<br>
+      不一样的是，这台固件跑在你的<b>浏览器</b>里——打开就能弹，不用刷机，也不会变砖。
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="./install/">安装到本机 →</a>
+      <a class="btn" href="./play/">直接试玩</a>
+    </div>
+    <div class="meta">v1.0.0 · 单文件 132 KB · 零依赖 · Chrome / Edge</div>
+  </section>
+
+  <figure class="shot">
+    <img src="assets/shot-saw.png" alt="PLANT-1 合成器界面：超锯齿预设" />
+  </figure>
+
+  <section class="feats" id="features">
+    <div class="card">
+      <span class="k">GENERATORS</span>
+      <h3>4 个发生器槽</h3>
+      <p>模拟（锯齿/方波/脉冲/正弦）、波表、FM 算子、噪声，每个槽独立调音、声像、SVF 滤波。</p>
+    </div>
+    <div class="card">
+      <span class="k">MODULATION</span>
+      <h3>拖线调制</h3>
+      <p>3 包络、2 LFO、混沌、宏控，拖到任意旋钮上就接上；每个音有自己的一份，和弦不会串。</p>
+    </div>
+    <div class="card">
+      <span class="k">EFFECTS</span>
+      <h3>5 槽效果链</h3>
+      <p>驱动、降位、合唱、移相、延迟、混响、均衡、压缩、滤波、立体声宽度，随换随用。</p>
+    </div>
+    <div class="card">
+      <span class="k">HARDWARE</span>
+      <h3>接上 FM-1 就弹</h3>
+      <p>用 USB MIDI 把 FM-1 的 27 键、旋钮、按钮接进来当硬件控制器，页面会认出你的设备。</p>
+    </div>
+  </section>
+
+  <section class="notes" id="about">
+    <div class="note">
+      <h3>怎么用</h3>
+      <ul>
+        <li><b>第一次点击</b>页面任意处才会开启音频（浏览器的自动播放策略）。</li>
+        <li><b>Z–M / Q–U</b> 两排键演奏，<b>↑↓</b> 换八度，<b>Shift</b> 精调旋钮。</li>
+        <li>把 <b>ENV1 / LFO1 / CHAOS / MACRO</b> 的标签拖到旋钮上建立调制；<b>Alt</b> 拖旋钮调深度。</li>
+        <li>接上 FM-1：<b>安装页 → 连接 FM-1</b>，授权 MIDI 后它的键盘和旋钮就直接可用。</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>关于「刷机」这件事</h3>
+      <p>
+        PLANT-1 是<b>浏览器固件</b>：它运行在你的电脑里，不写入 FM-1 的 flash，
+        所以不存在变砖或丢工程的风险。这里的「安装」= 装成可离线打开的本地应用，
+        并根据需要把 FM-1 接进来当控制器。
+      </p>
+      <p style="margin-top:10px">
+        <span class="warn">想要真正刷进设备的固件？</span>
+        去 <a href="https://github.com/charlesvestal/fm1-base" target="_blank" rel="noreferrer">fm1-base</a>
+        的 <code>.fwsc</code> 工具链，或者社区里的
+        <a href="https://github.com/barnierg76/golf-fm1" target="_blank" rel="noreferrer">Golf</a>、
+        fm1-dock、OG Synth。本页与它们无关，也不替代 M-VAVE 的升级工具。
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    PLANT-1 · 开源复刻，与 Kilohearts（Phase Plant）、M-VAVE（FM-1）均无隶属关系。<br>
+    引擎与界面均为本项目原创实现，未使用上述产品的代码或素材。
+  </div>
+</footer>
+
+</body>
+</html>

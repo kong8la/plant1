@@ -1,0 +1,8 @@
+out.log
+shots/
+.chrome-profile/
+.chrome-profile*/
+.chrome-dbg/
+node_modules/
+.DS_Store
+*.log

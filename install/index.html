@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>安装 · PLANT-1</title>
+<meta name="description" content="把 PLANT-1 装到本机：离线可用，可把 M-VAVE FM-1 接进来当硬件控制器。" />
+<link rel="icon" href="../assets/icon.svg" />
+<style>
+:root{
+  --bg:#07090d; --panel:#0d1219; --panel2:#101823; --line:#1c2634; --line2:#263343;
+  --txt:#dce7f4; --mut:#7a8a9e; --gen:#38bdf8; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,monospace;
+  --sans:ui-sans-serif,"Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(900px 420px at 12% -6%,rgba(56,189,248,.08),transparent 60%),var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding:0 22px 70px}
+.nav{height:58px;border-bottom:1px solid var(--line);display:flex;align-items:center;background:rgba(8,11,16,.85);position:sticky;top:0;backdrop-filter:blur(10px);z-index:10}
+.nav .wrap{display:flex;align-items:center;gap:14px;padding-bottom:0;width:100%;max-width:860px}
+.brand{font-weight:700;letter-spacing:.16em;font-size:15px;text-decoration:none}
+.brand span{color:var(--gen)}
+.nav .back{font-size:12px;color:var(--mut);text-decoration:none}
+.nav .back:hover{color:var(--txt)}
+
+.crumb{margin:26px 0 0;font:11px var(--mono);letter-spacing:.14em;color:#5b6b80}
+h1{font-size:clamp(30px,4.4vw,44px);margin:12px 0 12px;letter-spacing:.01em}
+.lead{font-size:14px;line-height:1.8;color:#a9b8ca;margin:0 0 26px;max-width:660px}
+
+.card{background:linear-gradient(180deg,var(--panel2),#0a0f16);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card h2{margin:0 0 12px;font-size:11px;letter-spacing:.2em;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:8px}
+.card h2 .dot{width:6px;height:6px;border-radius:50%;background:var(--gen);box-shadow:0 0 8px var(--gen)}
+
+.before{margin-bottom:22px}
+.before ul{margin:0;padding-left:20px;font-size:13px;line-height:2;color:#b3c1d2}
+.before li b{color:var(--txt)}
+.before .hint{color:var(--warn)}
+
+.build{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.build div{background:#0a0f16;border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.build .k{font:9px var(--mono);letter-spacing:.16em;color:#5f7088;display:block;margin-bottom:5px}
+.build .v{font:12px var(--mono);color:#cfe0f2}
+
+.step{margin-top:14px}
+.rows{display:flex;flex-direction:column;gap:1px;margin-top:4px}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #111a24;font-size:13px}
+.row:last-child{border-bottom:0}
+.row .name{flex:1;color:#c3d1e1}
+.row .val{font:11px var(--mono);color:var(--mut);max-width:58%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .mark{width:16px;text-align:center;font-size:12px}
+.ok{color:var(--ok)} .no{color:var(--bad)} .idle{color:#4b5a6d} .warnc{color:var(--warn)}
+
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+button.btn{font-family:var(--sans);font-size:13px;border-radius:8px;padding:10px 18px;cursor:pointer;border:1px solid var(--line2);background:var(--panel);color:var(--txt);transition:.15s}
+button.btn:hover:not(:disabled){border-color:#3a5470}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.btn.primary{background:linear-gradient(180deg,#38bdf8,#0ea5e9);color:#04121a;border-color:#38bdf8;font-weight:700}
+button.btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+button.btn.ghost{background:transparent}
+.status{font:11px var(--mono);color:var(--mut)}
+.status .ok{color:var(--ok)}
+
+.msg{margin-top:10px;font-size:12px;line-height:1.7;color:#8fa1b5;display:none}
+.msg.show{display:block}
+.msg b{color:var(--txt)}
+
+.logbox{margin-top:16px}
+.log{background:#05080c;border:1px solid #16202c;border-radius:9px;padding:10px 12px;height:150px;overflow:auto;font:11px/1.75 var(--mono);color:#8ea3b8}
+.log div{white-space:pre-wrap;word-break:break-all}
+.log .t{color:#3f5163}
+.log .e{color:#f87171}
+.log .s{color:#4ade80}
+.log .w{color:#fbbf24}
+.loghead{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
+.loghead h2{margin:0;font-size:11px;letter-spacing:.2em;color:var(--mut);font-weight:600}
+.loghead button{font-size:11px;background:transparent;border:1px solid var(--line2);border-radius:6px;color:var(--mut);padding:5px 10px;cursor:pointer;font-family:var(--sans)}
+.loghead button:hover{color:var(--txt)}
+
+.note{margin-top:22px;background:#0b0a07;border:1px solid #2a2417;border-radius:12px;padding:16px 20px;font-size:12.5px;line-height:1.9;color:#c4b9a2}
+.note b{color:#f5e6c8}
+.note a{color:#fbbf24;text-decoration:none}
+.note a:hover{text-decoration:underline}
+footer{margin-top:30px;font-size:11px;color:#4d5c6e;line-height:1.9}
+
+@media (max-width:720px){ .build{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="../">PLANT<span>-1</span></a>
+    <a class="back" href="../">← 返回</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="crumb">INSTALL / 安装</div>
+  <h1>安装 PLANT-1</h1>
+  <p class="lead">
+    把合成器装到本机，之后断网也能打开；顺手可以把 <b>M-VAVE FM-1</b> 接进来当键盘和旋钮。
+    整个过程不需要刷机，大约一分钟。
+  </p>
+
+  <section class="card before">
+    <h2><span class="dot"></span>开始之前</h2>
+    <ul>
+      <li>用桌面版 <b>Chrome 或 Edge</b>（需要 Web Audio；Firefox 也能弹，但安装体验不同）。</li>
+      <li>想接 FM-1 的话：用 <b>USB 数据线</b>直连电脑并开机，关掉其它占用它 MIDI 端口的软件。</li>
+      <li class="hint">PLANT-1 是浏览器固件，<b>不会写入 FM-1 的 flash</b>，不会变砖，也不会动你的工程和音色。</li>
+    </ul>
+  </section>
+
+  <section class="build">
+    <div><span class="k">VERSION</span><span class="v">1.0.0</span></div>
+    <div><span class="k">IDENTITY</span><span class="v">PLANT1-WEB</span></div>
+    <div><span class="k">BUILD</span><span class="v">2026-11-17</span></div>
+    <div><span class="k">SIZE</span><span class="v" id="sizeVal">132 KB</span></div>
+  </section>
+
+  <section class="card step">
+    <h2><span class="dot"></span>1 · 环境检查</h2>
+    <div class="rows" id="rows">
+      <div class="row"><span class="mark idle" data-m="browser">·</span><span class="name">浏览器</span><span class="val" data-v="browser">检测中…</span></div>
+      <div class="row"><span class="mark idle" data-m="audio">·</span><span class="name">Web Audio</span><span class="val" data-v="audio">检测中…</span></div>
+      <div class="row"><span class="mark idle" data-m="midi">·</span><span class="name">Web MIDI（接 FM-1 用）</span><span class="val" data-v="midi">检测中…</span></div>
+      <div class="row"><span class="mark idle" data-m="sw">·</span><span class="name">离线缓存</span><span class="val" data-v="sw">检测中…</span></div>
+    </div>
+  </section>
+
+  <section class="card step">
+    <h2><span class="dot" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>2 · 连接 FM-1（可选）</h2>
+    <div class="actions">
+      <button class="btn" id="btnMidi">连接 FM-1</button>
+      <span class="status" id="midiStatus">未连接</span>
+    </div>
+    <div class="msg" id="midiMsg"></div>
+    <div class="rows" id="devRows"></div>
+  </section>
+
+  <section class="card step">
+    <h2><span class="dot" style="background:#4ade80;box-shadow:0 0 8px #4ade80"></span>3 · 安装到本机</h2>
+    <div class="actions">
+      <button class="btn primary" id="btnInstall">安装</button>
+      <span class="status" id="installStatus">等待开始</span>
+    </div>
+    <div class="msg" id="installMsg"></div>
+  </section>
+
+  <section class="card step">
+    <h2><span class="dot" style="background:#fb923c;box-shadow:0 0 8px #fb923c"></span>4 · 完成</h2>
+    <div class="actions">
+      <a class="btn primary" href="../play/" id="btnOpen" style="text-decoration:none">打开合成器 →</a>
+      <button class="btn ghost" id="btnReload">重新检查</button>
+    </div>
+    <div class="msg show" id="openMsg">
+      装好之后，从桌面或开始菜单的 <b>PLANT-1</b> 图标打开即可；也可以直接 <b>收藏这个页面</b>。
+    </div>
+  </section>
+
+  <div class="loghead">
+    <h2>日志</h2>
+    <button id="btnSaveLog">保存日志</button>
+  </div>
+  <div class="logbox"><div class="log" id="log"></div></div>
+
+  <section class="note">
+    <b>关于真机固件：</b>PLANT-1 跑在浏览器里，所以这里的「安装」是把合成器装成本机应用，
+    并把 FM-1 当作控制器接入；它<b>不会</b>替换 FM-1 里的固件，也不需要 M-UPGRADE。
+    想真正刷进设备，请用
+    <a href="https://github.com/charlesvestal/fm1-base" target="_blank" rel="noreferrer">fm1-base</a>
+    的 <code>.fwsc</code> 工具链或社区固件（Golf、fm1-dock、OG Synth）；要恢复原厂固件用 M-VAVE 自己的升级工具。
+  </section>
+
+  <footer>
+    与 Kilohearts（Phase Plant）、M-VAVE（FM-1）均无隶属关系。
+  </footer>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var logEl = $('log');
+  function log(msg, cls) {
+    var t = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    var d = document.createElement('div');
+    var s = document.createElement('span');
+    s.className = 't';
+    s.textContent = t + '  ';
+    d.appendChild(s);
+    var body = document.createElement('span');
+    if (cls) body.className = cls;
+    body.textContent = msg;
+    d.appendChild(body);
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function mark(key, ok, text, cls) {
+    var m = document.querySelector('[data-m="' + key + '"]');
+    var v = document.querySelector('[data-v="' + key + '"]');
+    if (m) { m.textContent = ok ? '✓' : '×'; m.className = 'mark ' + (ok ? 'ok' : 'no'); }
+    if (v) { v.textContent = text; v.className = 'val ' + (cls || ''); }
+  }
+
+  /* 1. 环境检查 */
+  var ua = navigator.userAgent;
+  var isChromium = /Chrome\/|Edg\//.test(ua) && !/Firefox|OPR/.test(ua);
+  var isFirefox = /Firefox/.test(ua);
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasMidi = !!navigator.requestMIDIAccess;
+  var hasSW = 'serviceWorker' in navigator && location.protocol !== 'file:';
+
+  mark('browser', isChromium || isFirefox,
+    (isChromium ? 'Chromium ' : isFirefox ? 'Firefox ' : '其它 ') + (navigator.userAgentData ? '' : ''),
+    isChromium ? 'ok' : 'warnc');
+  mark('audio', hasAudio, hasAudio ? '可用' : '不可用', hasAudio ? 'ok' : 'no');
+  mark('midi', hasMidi, hasMidi ? '可用' : '不可用（仅影响 FM-1）', hasMidi ? 'ok' : 'warnc');
+  mark('sw', hasSW, hasSW ? '可用' : '不可用（file:// 或旧浏览器）', hasSW ? 'ok' : 'warnc');
+
+  log('环境：' + (isChromium ? 'Chromium' : isFirefox ? 'Firefox' : '其它') + ' · Web Audio ' + (hasAudio ? '可用' : '不可用'));
+  log('Web MIDI ' + (hasMidi ? '可用' : '不可用'), hasMidi ? null : 'w');
+  log('离线缓存 ' + (hasSW ? '可用' : '不可用'), hasSW ? null : 'w');
+
+  /* 2. 连接 FM-1 */
+  var midiAccess = null;
+  $('btnMidi').addEventListener('click', async function () {
+    if (!hasMidi) { log('这个浏览器不支持 Web MIDI', 'e'); return; }
+    $('btnMidi').disabled = true;
+    $('midiStatus').textContent = '正在请求 MIDI 权限…';
+    log('请求 MIDI 权限…');
+    try {
+      midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    } catch (err) {
+      $('btnMidi').disabled = false;
+      $('midiStatus').textContent = '被拒绝';
+      log('MIDI 权限被拒绝：' + err.message, 'e');
+      return;
+    }
+    $('btnMidi').disabled = false;
+    showDevices();
+    midiAccess.onstatechange = function () { showDevices(); };
+  });
+
+  function showDevices() {
+    var rows = $('devRows');
+    rows.innerHTML = '';
+    var list = [];
+    midiAccess.inputs.forEach(function (i) { list.push(i); });
+    if (!list.length) {
+      $('midiStatus').textContent = '没有找到 MIDI 输入';
+      log('没有找到 MIDI 输入设备，检查 USB 数据线和电源', 'w');
+      return;
+    }
+    var fm1 = null;
+    list.forEach(function (input) {
+      var isFM1 = /fm[-\s]?1|m[-\s]?vave/i.test(input.name || '');
+      if (isFM1 && !fm1) fm1 = input;
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<span class="mark ' + (isFM1 ? 'ok' : 'idle') + '">' + (isFM1 ? '✓' : '·') + '</span>' +
+        '<span class="name">' + (input.name || '(未命名)') + '</span>' +
+        '<span class="val">' + (isFM1 ? 'FM-1' : 'MIDI 输入') + '</span>';
+      rows.appendChild(row);
+      log('发现 MIDI 设备：' + (input.name || '(未命名)'));
+    });
+    if (fm1) {
+      $('midiStatus').innerHTML = '<span class="ok">已连接：' + fm1.name + '</span>';
+      $('midiMsg').classList.add('show');
+      $('midiMsg').innerHTML = '<b>FM-1 已就绪。</b>回到合成器页面，它的 27 键（note 53–79）、7 个旋钮（CC 20–26）和按键（CC 40–53）会直接可用。';
+      fm1.onmidimessage = function (m) {
+        var d = m.data;
+        if ((d[0] & 0xf0) === 0x90 && d[2] > 0) log('按键 note ' + d[1] + ' 力度 ' + d[2]);
+      };
+      log('FM-1 已连接：' + fm1.name, 's');
+    } else {
+      $('midiStatus').textContent = '找到了 MIDI 设备，但都不是 FM-1';
+      log('设备名里没有 FM-1 / M-VAVE，仍可在合成器里当普通 MIDI 用', 'w');
+    }
+  }
+
+  /* 3. 安装（PWA） */
+  var deferred = null;
+  var installed = false;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    $('installStatus').innerHTML = '<span class="ok">可以安装</span>';
+    $('btnInstall').disabled = false;
+    log('浏览器提供了安装入口', 's');
+  });
+  window.addEventListener('appinstalled', function () {
+    installed = true;
+    $('installStatus').innerHTML = '<span class="ok">已安装</span>';
+    $('btnInstall').disabled = true;
+    log('PLANT-1 已安装到本机', 's');
+  });
+
+  $('btnInstall').addEventListener('click', async function () {
+    $('btnInstall').disabled = true;
+    if (deferred) {
+      log('调用浏览器安装对话框…');
+      deferred.prompt();
+      var res = await deferred.userChoice;
+      log('安装结果：' + (res.outcome === 'accepted' ? '已接受' : '已取消'), res.outcome === 'accepted' ? 's' : 'w');
+      if (res.outcome === 'accepted') {
+        $('installStatus').innerHTML = '<span class="ok">已安装</span>';
+      } else {
+        $('installStatus').textContent = '已取消';
+        $('btnInstall').disabled = false;
+      }
+      deferred = null;
+      return;
+    }
+    // 没有安装提示：注册离线缓存，并给出手动安装方法
+    $('installMsg').classList.add('show');
+    $('installMsg').innerHTML =
+      '浏览器这次没有给出安装入口。你可以：<br>' +
+      '① 在地址栏右侧点 <b>安装</b> 图标，或菜单 <b>应用 → 安装此站点</b>；<br>' +
+      '② 直接把这个页面 <b>加入书签</b>，合成器本身是单文件，缓存后断网也能开。';
+    $('installStatus').textContent = '请手动安装';
+    log('没有 beforeinstallprompt，改为手动安装说明', 'w');
+    try {
+      await navigator.serviceWorker.register('../play/sw.js', { scope: '../play/' });
+      log('离线缓存已注册（/play/）', 's');
+    } catch (err) {
+      log('离线缓存注册失败：' + err.message, 'e');
+    }
+    $('btnInstall').disabled = false;
+  });
+
+  /* 打开合成器时顺带注册缓存 */
+  $('btnOpen').addEventListener('click', function () {
+    if (hasSW) {
+      navigator.serviceWorker.register('../play/sw.js', { scope: '../play/' })
+        .then(function () { log('离线缓存已注册（/play/）', 's'); })
+        .catch(function (e) { log('离线缓存注册失败：' + e.message, 'e'); });
+    }
+  });
+
+  /* 保存日志 */
+  $('btnSaveLog').addEventListener('click', function () {
+    var text = logEl.innerText;
+    var blob = new Blob([text], { type: 'text/plain' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'plant1-install-log.txt';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    log('日志已保存');
+  });
+
+  $('btnReload').addEventListener('click', function () { location.reload(); });
+
+  /* 预填大小 */
+  fetch('../play/index.html', { method: 'HEAD' }).then(function (r) {
+    var len = r.headers.get('content-length');
+    if (len) {
+      var kb = Math.round(len / 1024);
+      $('sizeVal').textContent = kb + ' KB';
+      log('固件体积：' + kb + ' KB');
+    }
+  }).catch(function () { });
+
+  log('安装页就绪', 's');
+})();
+</script>
+</body>
+</html>

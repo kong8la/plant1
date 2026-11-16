@@ -1,0 +1,3373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0f16'/%3E%3Cpath d='M10 44 L22 20 L34 44 L46 20 L54 36' stroke='%2338bdf8' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<title>PLANT-1 · FM-1 模块化固件</title>
+<meta name="theme-color" content="#07090d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="description" content="Phase Plant 思路的模块化合成器，做成 M-VAVE FM-1 的样子，单文件跑在浏览器里。" />
+<style>:root {
+  --bg: #07090d;
+  --panel: #0d1219;
+  --panel2: #111925;
+  --panel3: #0a0f16;
+  --line: #1c2634;
+  --line2: #263343;
+  --txt: #dce7f4;
+  --mut: #7a8a9e;
+  --gen: #38bdf8;
+  --gen-d: #0e7490;
+  --mod: #a78bfa;
+  --mod-d: #6d28d9;
+  --fx: #fb923c;
+  --fx-d: #c2410c;
+  --ok: #4ade80;
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+  --sans: ui-sans-serif, "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(56, 189, 248, .06), transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, rgba(167, 139, 250, .05), transparent 60%),
+    var(--bg);
+  color: var(--txt);
+  font-family: var(--sans);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- 顶栏 */
+.top {
+  flex: 0 0 auto;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #0c1118 0%, #080b10 100%);
+  position: relative;
+  z-index: 20;
+}
+.brand { line-height: 1; min-width: 118px; }
+.brand b { font-size: 19px; letter-spacing: .16em; font-weight: 700; }
+.brand b span { color: var(--gen); }
+.brand i { display: block; margin-top: 4px; font-size: 8px; letter-spacing: .2em; color: var(--mut); font-style: normal; }
+
+.preset { display: flex; align-items: center; gap: 5px; position: relative; }
+.preset button { font-family: var(--sans); }
+.pbtn {
+  width: 24px; height: 30px; border-radius: 6px;
+  background: var(--panel); color: var(--mut); border: 1px solid var(--line);
+  cursor: pointer; font-size: 10px; line-height: 1;
+}
+.pbtn:hover { color: var(--txt); border-color: var(--line2); }
+.pname {
+  min-width: 182px; text-align: left; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 4px 12px; color: var(--txt);
+}
+.pname:hover { border-color: var(--gen-d); }
+.pname b { display: block; font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+.pname i { display: block; font-size: 8px; letter-spacing: .16em; color: var(--mut); font-style: normal; margin-top: 2px; }
+
+.plist {
+  position: absolute; top: 42px; left: 26px; width: 260px; max-height: 420px; overflow: auto;
+  background: var(--panel2); border: 1px solid var(--line2); border-radius: 10px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, .6); padding: 5px; z-index: 60; display: none;
+}
+.plist.open { display: block; }
+.plist button {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  width: 100%; background: transparent; border: 0; color: var(--txt);
+  padding: 7px 9px; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: left;
+}
+.plist button:hover { background: #1a2432; }
+.plist button.cur { background: #16283a; }
+.plist button em { font: 8px var(--mono); color: var(--mut); font-style: normal; letter-spacing: .12em; }
+
+/* TFT 小屏 */
+.screen {
+  margin-left: auto; width: 252px; flex: 0 0 auto;
+  background: #04100a; border: 1px solid #1c3a29; border-radius: 7px;
+  padding: 4px 6px 3px; position: relative; overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(74, 222, 128, .10), 0 0 0 1px rgba(0, 0, 0, .4);
+}
+.screen::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .30) 0 1px, transparent 1px 3px);
+  opacity: .55;
+}
+#scope { display: block; width: 100%; height: 42px; }
+.sline { display: flex; justify-content: space-between; font: 9px/1.2 var(--mono); color: #58d889; letter-spacing: .1em; }
+.sline .dim { color: #2f7a4e; }
+
+.acts { display: flex; gap: 5px; }
+.acts button {
+  background: var(--panel); border: 1px solid var(--line); color: var(--mut);
+  border-radius: 6px; padding: 7px 9px; font-size: 10px; letter-spacing: .1em;
+  cursor: pointer; font-family: var(--sans);
+}
+.acts button:hover { color: var(--txt); border-color: var(--line2); }
+.acts button.hot:hover { color: #fda4af; border-color: #7f1d1d; }
+.acts button.go:hover { color: var(--ok); border-color: #14532d; }
+
+/* ---------------------------------------------------------------- 主体 */
+main {
+  flex: 1 1 auto; min-height: 0;
+  display: grid; grid-template-columns: 202px minmax(0, 1fr) 316px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 9px; padding: 9px 10px 6px; overflow: hidden;
+}
+.col { display: flex; flex-direction: column; gap: 7px; min-width: 0; min-height: 0; }
+#colMods { overflow-y: auto; overflow-x: hidden; padding-right: 3px; }
+#colVoice { min-height: 0; }
+
+.panel {
+  background: linear-gradient(180deg, #101823 0%, #0b1118 100%);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 9px 9px;
+}
+.panel h3 {
+  margin: 0 0 7px; font-size: 9px; letter-spacing: .2em; color: var(--mut); font-weight: 600;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden;
+}
+.panel h3 .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gen); box-shadow: 0 0 6px var(--gen); }
+.panel.mods h3 .dot { background: var(--mod); box-shadow: 0 0 6px var(--mod); }
+.panel.fxs h3 .dot { background: var(--fx); box-shadow: 0 0 6px var(--fx); }
+
+.knobrow { display: flex; flex-wrap: wrap; gap: 2px 4px; }
+
+/* 旋钮 */
+.knob {
+  width: 54px; display: flex; flex-direction: column; align-items: center;
+  cursor: ns-resize; user-select: none; touch-action: none; padding: 1px 0 2px;
+  border-radius: 6px; position: relative;
+}
+.knob .kcanvas { width: 40px; height: 40px; display: block; }
+.klabel { font-size: 8.5px; color: var(--mut); letter-spacing: .04em; margin-top: 1px; white-space: nowrap; }
+.kval { font: 8.5px var(--mono); color: #93a6bc; white-space: nowrap; }
+.knob:hover .klabel { color: var(--txt); }
+.knob.active .kval { color: var(--gen); }
+.knob.hasmode .klabel { color: var(--mod); }
+.knob.target { background: rgba(167, 139, 250, .12); box-shadow: 0 0 0 1px var(--mod) inset; }
+
+/* 下拉选择 */
+.sel {
+  width: 100%; margin-top: 2px; background: var(--panel3); color: var(--txt);
+  border: 1px solid var(--line); border-radius: 5px; font: 10px var(--sans);
+  padding: 3px 4px; cursor: pointer; appearance: none; text-align: center;
+}
+.sel:hover { border-color: var(--line2); }
+.sel:focus { outline: 1px solid var(--gen-d); }
+
+/* 开关 */
+.pwr {
+  width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line2);
+  background: #0a0f16; color: #3d4b5e; cursor: pointer; font-size: 9px; line-height: 1;
+  display: grid; place-items: center; transition: all .15s;
+}
+.pwr.on { color: #041017; background: var(--gen); border-color: var(--gen); box-shadow: 0 0 10px rgba(56, 189, 248, .45); }
+
+/* 发生器卡片 */
+.gens { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; min-height: 0; }
+.gen {
+  background: linear-gradient(170deg, #0f1a26 0%, #0a1018 100%);
+  border: 1px solid var(--line); border-radius: 10px; padding: 7px 8px 6px;
+  position: relative; min-height: 0;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.gen::before {
+  content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px;
+  border-radius: 2px; background: linear-gradient(180deg, var(--gen), transparent);
+  opacity: .5;
+}
+.gen.off { opacity: .45; filter: saturate(.3); }
+.gen-h { display: flex; align-items: center; gap: 6px; margin-bottom: 1px; flex: 0 0 auto; }
+.gen-h .tag { font: 9px var(--mono); color: var(--gen); letter-spacing: .14em; }
+.gen-h .sel { width: auto; flex: 1; margin: 0; }
+.gen-h .pwr { flex: 0 0 auto; }
+.gen-body { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-height: 0; }
+.gen-prev {
+  width: 100%; height: auto; flex: 1 1 54px; min-height: 42px; max-height: 112px;
+  background: #060a0f; border: 1px solid #16202c; border-radius: 5px; display: block;
+}
+.gen-knobs { display: flex; flex-wrap: wrap; gap: 1px 2px; align-content: flex-start; flex: 0 0 auto; }
+.gen-foot { display: flex; align-items: center; gap: 6px; margin-top: 1px; flex: 0 0 auto; }
+.gen-foot .lbl { font: 8px var(--mono); color: #4a5a6e; letter-spacing: .1em; }
+.gen-foot .sel { width: 92px; margin: 0; }
+
+/* 调制器 */
+.mod { border: 1px solid var(--line); border-radius: 9px; background: linear-gradient(180deg, #131022 0%, #0b0a13 100%); padding: 5px 6px 4px; }
+.mod-h { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+.mod-h .tag { font: 8.5px var(--mono); color: var(--mod); letter-spacing: .12em; cursor: grab; padding: 2px 5px; border: 1px solid #3b2a63; border-radius: 4px; background: #1a1230; }
+.mod-h .tag:active { cursor: grabbing; }
+.mod-h .tag:hover { background: #241840; }
+.mod-h .nm { font-size: 10px; color: #c3b4ea; flex: 1; }
+.mod-h .pwr { width: 18px; height: 18px; font-size: 8px; }
+.mod canvas.ed { display: block; width: 100%; height: 36px; background: #08060f; border: 1px solid #221a38; border-radius: 5px; touch-action: none; }
+.mod .knobrow { gap: 0 1px; }
+.mod .knob { width: 40px; }
+.mod .knob .kcanvas { width: 30px; height: 30px; }
+.mod .klabel { font-size: 7.5px; }
+.mod .kval { font-size: 7.5px; }
+
+/* 调制矩阵 */
+.panel.mat { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 96px; }
+.panel.mat h3 { flex: 0 0 auto; }
+.matrix { display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow: auto; padding-right: 2px; }
+.panel.mat .matrix { flex: 1 1 auto; max-height: none; }
+.mitem { background: #0c0913; border: 1px solid #1d1730; border-radius: 6px; padding: 2px 4px 1px; }
+.mrow { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px; font-size: 9.5px; }
+.mrow .src { font: 7.5px var(--mono); letter-spacing: .06em; padding: 1px 4px; border-radius: 3px; }
+.mrow .tgt { color: #b9c6d8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .del { background: none; border: 0; color: #5b4a6e; cursor: pointer; font-size: 11px; padding: 0 2px; line-height: 1; }
+.mrow .del:hover { color: #f87171; }
+.mslider { display: flex; align-items: center; gap: 4px; }
+.mslider input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: #a78bfa; height: 11px; }
+.mslider .amt { font: 7.5px var(--mono); color: var(--mut); width: 30px; text-align: right; flex: 0 0 auto; }
+.mempty { font-size: 9.5px; color: #4d5a6b; padding: 8px 4px; line-height: 1.6; }
+.srcchips { display: flex; flex-wrap: wrap; gap: 3px; margin: 0 0 5px; }
+.chip {
+  font: 8px var(--mono); letter-spacing: .06em; color: #b9a6e8;
+  background: #1a1230; border: 1px solid #3b2a63; border-radius: 4px;
+  padding: 1px 5px; cursor: grab; user-select: none;
+}
+.chip:hover { background: #241840; color: #ddd0ff; }
+.chip:active { cursor: grabbing; }
+
+/* 效果 */
+.fxrow { flex: 0 0 auto; padding: 0 10px 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+.fx { background: linear-gradient(180deg, #1a1209 0%, #0d0c0a 100%); border: 1px solid #2a2015; border-radius: 9px; padding: 6px 7px 5px; }
+.fx.off { opacity: .45; filter: saturate(.25); }
+.fx-h { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+.fx-h .tag { font: 8.5px var(--mono); color: var(--fx); letter-spacing: .1em; }
+.fx-h .sel { margin: 0; width: auto; flex: 1; font-size: 9px; }
+.fx .knobrow { gap: 0 1px; }
+.fx .knob { width: 44px; }
+.fx .knob .kcanvas { width: 30px; height: 30px; }
+.fx .klabel { font-size: 7.5px; }
+.fx .kval { font-size: 7.5px; }
+.fxrow { align-items: stretch; }
+.fx { display: flex; flex-direction: column; }
+.master { background: linear-gradient(180deg, #0c1a12 0%, #080d0b 100%); border-color: #173225; }
+.master .tag { color: var(--ok); }
+.meter { height: 5px; background: #0a1410; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22c55e, #eab308 70%, #ef4444); transition: width .06s linear; }
+
+/* 键盘 */
+.keys { flex: 0 0 auto; padding: 5px 10px 7px; border-top: 1px solid var(--line); background: linear-gradient(180deg, #080b10, #05070a); }
+.kwrap { display: flex; align-items: stretch; gap: 8px; }
+.kbd { position: relative; height: 82px; flex: 1 1 auto; min-width: 0; }
+.wkey {
+  position: absolute; top: 0; bottom: 0; border-radius: 0 0 5px 5px;
+  background: linear-gradient(180deg, #e7eef7 0%, #b8c6d8 78%, #9aabc0 100%);
+  border: 1px solid #0a0e14; border-top: 0; cursor: pointer;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px;
+  font: 8px var(--mono); color: #6b7a8c; user-select: none;
+}
+.wkey:hover { background: linear-gradient(180deg, #f6fbff 0%, #c7d5e6 100%); }
+.wkey.on { background: linear-gradient(180deg, #a5f3fc 0%, #22d3ee 85%, #0891b2 100%); color: #06222b; }
+.bkey {
+  position: absolute; top: 0; height: 58%; border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, #2a3646 0%, #131a24 60%, #0b1118 100%);
+  border: 1px solid #05080c; cursor: pointer; z-index: 3;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px;
+  font: 7px var(--mono); color: #56667a; user-select: none;
+}
+.bkey:hover { background: linear-gradient(180deg, #3a4a5e 0%, #1b2430 100%); }
+.bkey.on { background: linear-gradient(180deg, #67e8f9 0%, #06b6d4 70%, #0e7490 100%); color: #04212a; }
+.kctrl { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.kctrl button { background: var(--panel); border: 1px solid var(--line); color: var(--mut); border-radius: 5px; height: 21px; font: 9px var(--mono); cursor: pointer; padding: 0 8px; }
+.kctrl button:hover { color: var(--txt); border-color: var(--line2); }
+.khint { font: 8px var(--mono); color: #3f4d5f; letter-spacing: .06em; line-height: 1.5; margin-top: 4px; }
+
+/* 提示 */
+.toast {
+  position: fixed; left: 50%; bottom: 132px; transform: translate(-50%, 8px);
+  background: #131c28; border: 1px solid #2b3b4f; color: #cfe0f2;
+  padding: 7px 13px; border-radius: 8px; font-size: 11px; letter-spacing: .04em;
+  opacity: 0; pointer-events: none; transition: all .22s; z-index: 90;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.dropmod {
+  position: fixed; z-index: 95; pointer-events: none; display: none;
+  background: #241840; border: 1px solid #6d28d9; color: #ddd0ff;
+  padding: 3px 9px; border-radius: 20px; font: 10px var(--mono); letter-spacing: .1em;
+  transform: translate(-50%, -50%);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #1c2836; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@media (max-width: 1300px) {
+  .knob { width: 46px; }
+  .knob .kcanvas { width: 34px; height: 34px; }
+  .gen-knobs .knob { width: 44px; }
+  .gen-knobs .knob .kcanvas { width: 33px; height: 33px; }
+  .mod .knob { width: 34px; }
+  .mod .knob .kcanvas { width: 26px; height: 26px; }
+  .fx .knob { width: 38px; }
+  .fx .knob .kcanvas { width: 26px; height: 26px; }
+  .fx .klabel, .fx .kval { font-size: 7px; }
+}
+
+@media (max-width: 1280px) {
+  main { grid-template-columns: 176px minmax(0, 1fr) 286px; }
+  .screen { width: 210px; }
+  .brand i { display: none; }
+}
+@media (max-width: 1080px) {
+  body { overflow: auto; }
+  main { grid-template-columns: 1fr; }
+  .fxrow { grid-template-columns: repeat(3, 1fr); }
+  .gens { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>PLANT<span>-1</span></b><i>FM-1 MODULAR FIRMWARE</i></div>
+  <div class="preset">
+    <button class="pbtn" id="pPrev" title="上一个音色">&#9664;</button>
+    <button class="pname" id="pName"><b id="presetName">初始化</b><i id="presetEn">INIT</i></button>
+    <div class="plist" id="presetList"></div>
+    <button class="pbtn" id="pNext" title="下一个音色">&#9654;</button>
+  </div>
+  <div class="screen">
+    <canvas id="scope" width="500" height="84"></canvas>
+    <div class="sline"><span id="sPreset">INIT</span><span id="sVoices" class="dim">0 V</span></div>
+  </div>
+  <div class="acts">
+    <button data-act="init" title="初始化音色">INIT</button>
+    <button data-act="rand" title="随机生成音色">随机</button>
+    <button data-act="audition" title="试听当前音色">试听</button>
+    <button data-act="save" title="导出音色 JSON">导出</button>
+    <button data-act="load" title="导入音色 JSON">导入</button>
+    <button data-act="flash" class="go" title="写入 FM-1（模拟）">FLASH</button>
+    <button data-act="panic" class="hot" title="全部静音">静音</button>
+  </div>
+  <input id="fileIn" type="file" accept=".json,application/json" hidden />
+</header>
+
+<main id="main">
+  <section class="col" id="colVoice"></section>
+  <section class="gens" id="colGens"></section>
+  <section class="col" id="colMods"></section>
+</main>
+
+<section class="fxrow" id="fxrow"></section>
+
+<footer class="keys">
+  <div class="kwrap">
+    <div class="kctrl">
+      <button id="octDown" title="降低八度">&#9664; 八度</button>
+      <button id="octUp" title="升高八度">八度 &#9654;</button>
+      <button id="holdBtn" title="保持音">保持 OFF</button>
+    </div>
+    <div class="kbd" id="kbd"></div>
+  </div>
+  <div class="khint" id="khint">电脑键盘 Z–M / Q–U 演奏 · &#8593;&#8595; 换八度 · 把调制器标签（ENV1 / LFO1 …）拖到任意旋钮上即可建立调制 · 双击旋钮复位 · 右键旋钮清除该参数调制</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+<div class="dropmod" id="dropMod"></div>
+
+<script id="engine-src" type="text/plain">/* ============================================================================
+ * PLANT-1  ·  Phase-Plant 风格模块化合成器引擎（M-VAVE FM-1 固件模拟）
+ * ----------------------------------------------------------------------------
+ * 纯 JS DSP，不碰 DOM，可同时跑在 AudioWorklet 和 Node 测试里。
+ * 结构：4 个发生器槽（模拟/波表/FM/噪声）→ 各自滤波 → 声部总线 → 全局滤波
+ *       → 5 个效果槽 → 主输出。调制矩阵把 8 个调制源连到任意浮点参数上。
+ * ==========================================================================*/
+(function (root) {
+  'use strict';
+
+  var TAU = Math.PI * 2;
+  var CHUNK = 16;          // 控制率：每 16 个采样更新一次调制/滤波系数
+  var TSIZE = 1024;        // 波表长度
+  var MASK = TSIZE - 1;
+
+  /* ------------------------------------------------------------------ 参数 */
+  var P = {};
+  var NSLOT = 0;
+
+  function D(id, min, max, def, o) {
+    o = o || {};
+    var kind = o.kind || 'float';
+    var d = {
+      id: id, min: min, max: max, def: def,
+      curve: o.curve || 'lin',
+      kind: kind,
+      label: o.label || id,
+      en: o.en || id,
+      unit: o.unit || '',
+      values: o.values || null,
+      mod: kind === 'float' && o.mod !== false,
+      slot: -1
+    };
+    if (d.mod) d.slot = NSLOT++;
+    P[id] = d;
+    return d;
+  }
+
+  function toNorm(d, v) {
+    if (d.curve === 'log') {
+      v = Math.max(d.min, Math.min(d.max, v));
+      return Math.log(v / d.min) / Math.log(d.max / d.min);
+    }
+    return (v - d.min) / (d.max - d.min);
+  }
+  function fromNorm(d, n) {
+    n = n < 0 ? 0 : n > 1 ? 1 : n;
+    if (d.curve === 'log') return d.min * Math.pow(d.max / d.min, n);
+    return d.min + (d.max - d.min) * n;
+  }
+
+  var GEN_TYPES = ['模拟', '波表', 'FM', '噪声'];
+  var GEN_TYPES_EN = ['ANALOG', 'WAVETABLE', 'FM', 'NOISE'];
+  var WAVES = ['锯齿', '方波', '脉冲', '正弦'];
+  var WAVES_EN = ['SAW', 'SQUARE', 'PULSE', 'SINE'];
+  var FTYPES = ['关', '低通', '高通', '带通', '陷波'];
+  var FTYPES_EN = ['OFF', 'LP', 'HP', 'BP', 'NOTCH'];
+  var LFO_SHAPES = ['正弦', '三角', '上锯', '下锯', '方波', '随机', '平滑随机'];
+  var LFO_DIVS = ['4 小节', '2 小节', '1 小节', '1/2', '1/4', '1/8', '1/16', '1/32'];
+  var FX_TYPES = ['驱动', '降位', '合唱', '移相', '延迟', '混响', '均衡', '压缩', '滤波', '立体声'];
+  var FX_EN = ['DRIVE', 'CRUSH', 'CHORUS', 'PHASER', 'DELAY', 'REVERB', 'EQ', 'COMP', 'FILTER', 'WIDTH'];
+
+  D('voice.poly', 1, 16, 8, { kind: 'int', label: '复音', en: 'POLY' });
+  D('voice.unison', 1, 5, 1, { kind: 'int', label: '齐奏', en: 'UNISON' });
+  D('voice.detune', 0, 60, 14, { label: '失谐', en: 'DETUNE', unit: '¢', mod: false });
+  D('voice.spread', 0, 1, 0.6, { label: '展宽', en: 'SPREAD', mod: false });
+  D('voice.glide', 0, 400, 0, { label: '滑音', en: 'GLIDE', unit: 'ms', mod: false });
+  D('voice.bend', 1, 24, 2, { kind: 'int', label: '弯音', en: 'BEND', unit: 'st' });
+  D('voice.gain', 0, 1.5, 0.8, { label: '总音量', en: 'VOLUME', mod: false });
+
+  for (var g = 0; g < 4; g++) {
+    D('gen' + g + '.on', 0, 1, g === 0 ? 1 : 0, { kind: 'int', label: '启用', en: 'ON' });
+    D('gen' + g + '.type', 0, 3, g === 0 ? 0 : 1, { kind: 'enum', label: '类型', en: 'TYPE', values: GEN_TYPES });
+    D('gen' + g + '.level', 0, 1.4, 0.8, { label: '电平', en: 'LEVEL' });
+    D('gen' + g + '.pan', -1, 1, 0, { label: '声像', en: 'PAN' });
+    D('gen' + g + '.tune', -36, 36, 0, { label: '音高', en: 'TUNE', unit: 'st' });
+    D('gen' + g + '.cut', 30, 18000, 18000, { curve: 'log', label: '截止', en: 'CUTOFF', unit: 'Hz' });
+    D('gen' + g + '.res', 0, 1, 0.15, { label: '共振', en: 'RESO' });
+    D('gen' + g + '.ftype', 0, 4, 0, { kind: 'enum', label: '滤波', en: 'FILTER', values: FTYPES });
+    D('gen' + g + '.wave', 0, 3, 0, { kind: 'enum', label: '波形', en: 'WAVE', values: WAVES });
+    D('gen' + g + '.pwm', 0.05, 0.95, 0.5, { label: '脉宽', en: 'PWM' });
+    D('gen' + g + '.table', 0, 5, 0, { kind: 'int', label: '波表', en: 'TABLE' });
+    D('gen' + g + '.morph', 0, 1, 0, { label: '形变', en: 'MORPH' });
+    D('gen' + g + '.ratio', 0.25, 16, 1, { curve: 'log', label: '比率', en: 'RATIO' });
+    D('gen' + g + '.index', 0, 16, 2, { label: '指数', en: 'INDEX' });
+    D('gen' + g + '.fb', 0, 1, 0, { label: '反馈', en: 'FEEDBACK' });
+    D('gen' + g + '.color', 0, 1, 0.4, { label: '色温', en: 'COLOR' });
+  }
+
+  D('flt.on', 0, 1, 0, { kind: 'int', label: '启用', en: 'ON' });
+  D('flt.type', 0, 4, 1, { kind: 'enum', label: '类型', en: 'TYPE', values: FTYPES });
+  D('flt.cut', 30, 18000, 7000, { curve: 'log', label: '截止', en: 'CUTOFF', unit: 'Hz' });
+  D('flt.res', 0, 1, 0.15, { label: '共振', en: 'RESO' });
+  D('flt.drive', 0, 1, 0, { label: '过载', en: 'DRIVE' });
+
+  for (var e = 0; e < 3; e++) {
+    D('env' + e + '.a', 0.001, 8, e === 0 ? 0.004 : 0.4, { curve: 'log', label: '起音', en: 'ATTACK', unit: 's' });
+    D('env' + e + '.d', 0.002, 8, e === 0 ? 0.9 : 1.2, { curve: 'log', label: '衰减', en: 'DECAY', unit: 's' });
+    D('env' + e + '.s', 0, 1, e === 0 ? 0.0 : 0.7, { label: '延持', en: 'SUSTAIN' });
+    D('env' + e + '.r', 0.002, 10, e === 0 ? 0.35 : 1.6, { curve: 'log', label: '释放', en: 'RELEASE', unit: 's' });
+    D('env' + e + '.curve', -1, 1, 0, { label: '曲线', en: 'CURVE' });
+    D('env' + e + '.vel', 0, 1, 0.6, { label: '力度', en: 'VELO', mod: false });
+  }
+
+  for (var l = 0; l < 2; l++) {
+    D('lfo' + l + '.rate', 0.02, 40, l === 0 ? 1.2 : 0.25, { curve: 'log', label: '速率', en: 'RATE', unit: 'Hz', mod: false });
+    D('lfo' + l + '.shape', 0, 6, l, { kind: 'enum', label: '波形', en: 'SHAPE', values: LFO_SHAPES });
+    D('lfo' + l + '.sync', 0, 1, 0, { kind: 'int', label: '同步', en: 'SYNC' });
+    D('lfo' + l + '.div', 0, 7, 4, { kind: 'enum', label: '分频', en: 'DIV', values: LFO_DIVS });
+    D('lfo' + l + '.phase', 0, 1, 0, { label: '相位', en: 'PHASE', mod: false });
+    D('lfo' + l + '.amp', 0, 1, 1, { label: '幅度', en: 'AMOUNT', mod: false });
+    D('lfo' + l + '.uni', 0, 1, 0, { kind: 'int', label: '单极', en: 'UNI' });
+  }
+
+  D('chaos.rate', 0.02, 8, 0.6, { curve: 'log', label: '速率', en: 'RATE', unit: 'Hz', mod: false });
+  D('chaos.smooth', 0, 1, 0.6, { label: '平滑', en: 'SMOOTH', mod: false });
+  D('macro.val', 0, 1, 0.5, { label: '宏控', en: 'MACRO', mod: false });
+
+  for (var f = 0; f < 5; f++) {
+    D('fx' + f + '.on', 0, 1, 0, { kind: 'int', label: '启用', en: 'ON' });
+    D('fx' + f + '.type', 0, 9, f, { kind: 'enum', label: '类型', en: 'TYPE', values: FX_TYPES });
+    D('fx' + f + '.p1', 0, 1, 0.5, { label: 'A', en: 'A' });
+    D('fx' + f + '.p2', 0, 1, 0.5, { label: 'B', en: 'B' });
+    D('fx' + f + '.p3', 0, 1, 0.5, { label: 'C', en: 'C' });
+    D('fx' + f + '.mix', 0, 1, 0.35, { label: '混合', en: 'MIX' });
+  }
+
+  D('tempo', 40, 200, 120, { kind: 'int', label: '速度', en: 'BPM' });
+
+  var MOD_SOURCES = ['env1', 'env2', 'env3', 'lfo1', 'lfo2', 'chaos', 'macro', 'vel', 'key', 'mw', 'at', 'rnd'];
+  var MOD_LABELS = ['包络 1', '包络 2', '包络 3', 'LFO 1', 'LFO 2', '混沌', '宏控', '力度', '键位', '调制轮', '触后', '随机'];
+  var SOURCE_COLORS = ['#a78bfa', '#a78bfa', '#a78bfa', '#c084fc', '#c084fc', '#f472b6', '#fbbf24', '#38bdf8', '#38bdf8', '#38bdf8', '#38bdf8', '#f472b6'];
+
+  /* ---------------------------------------------------------------- 波表库 */
+  var TABLES = null;
+
+  function buildTables() {
+    var specs = [
+      // [名称, 帧A 谐波表, 帧B 谐波表]  谐波振幅按 h=1..64 索引
+      ['锯齿/方波', hs(function (h) { return 1 / h; }, 64), hs(function (h) { return h % 2 ? 1 / h : 0; }, 64)],
+      ['正弦/三角', hs(function (h) { return h === 1 ? 1 : 0; }, 64), hs(function (h) { return h % 2 ? 1 / (h * h) * (h % 4 === 1 ? 1 : -1) : 0; }, 64)],
+      ['管风琴', hs(function (h) { return [1, 0.5, 0, 0.3, 0, 0, 0, 0.18][h - 1] || 0; }, 8), hs(function (h) { return Math.pow(h, -0.7); }, 32)],
+      ['人声', hs(function (h) { return Math.exp(-Math.pow((h - 3) / 3, 2)) * 0.8 + Math.exp(-Math.pow((h - 8) / 4, 2)) * 0.5; }, 32), hs(function (h) { return Math.exp(-Math.pow((h - 5) / 4, 2)) * 0.7 + Math.exp(-Math.pow((h - 14) / 6, 2)) * 0.5; }, 48)],
+      ['金属', hs(function (h) { return (h % 2 || h % 3 === 0) ? 1 / Math.pow(h, 0.8) : 0; }, 48), hs(function (h) { return [1, 0, 0.8, 0, 0.6, 0, 0, 0.5, 0, 0, 0, 0.4][h - 1] || 0; }, 16)],
+      ['数字', hs(function (h) { return (h % 4 === 1) ? 1 / Math.sqrt(h) : (h % 4 === 3 ? -1 / Math.sqrt(h) : 0); }, 64), hs(function (h) { return Math.pow(h, -0.5) * (h % 2 ? 1 : 0.4); }, 64)]
+    ];
+    var mipH = [64, 32, 16, 8, 4, 2];
+    TABLES = specs.map(function (s) {
+      var frames = [s[1], s[2]].map(function (amps) {
+        var mips = mipH.map(function (maxH) {
+          var buf = new Float32Array(TSIZE);
+          for (var h = 1; h <= maxH; h++) {
+            var amp = amps[h - 1] || 0;
+            if (!amp) continue;
+            genHarmonic(buf, h, amp, h * 1.7);
+          }
+          normalize(buf);
+          return buf;
+        });
+        return mips;
+      });
+      return { name: s[0], a: frames[0], b: frames[1] };
+    });
+    return TABLES;
+  }
+
+  function hs(fn, count) {
+    var out = new Array(count);
+    for (var h = 1; h <= count; h++) out[h - 1] = fn(h);
+    return out;
+  }
+
+  function genHarmonic(buf, h, amp, ph) {
+    var w = TAU * h / TSIZE;
+    var cs = Math.cos(w), sn = Math.sin(w);
+    var re = Math.cos(ph), im = Math.sin(ph);
+    for (var i = 0; i < TSIZE; i++) {
+      buf[i] += amp * im;
+      var nr = re * cs - im * sn;
+      im = re * sn + im * cs;
+      re = nr;
+    }
+  }
+
+  function normalize(buf) {
+    var peak = 1e-6;
+    for (var i = 0; i < buf.length; i++) { var a = Math.abs(buf[i]); if (a > peak) peak = a; }
+    var k = 1 / peak;
+    for (var j = 0; j < buf.length; j++) buf[j] *= k;
+  }
+
+  /* --------------------------------------------------------------- 基础 DSP */
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function midiHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  function SVF(mode) {
+    this.ic1 = 0; this.ic2 = 0;
+    this.a1 = 0; this.a2 = 0; this.a3 = 0; this.k = 1; this.mode = mode;
+  }
+  SVF.prototype.set = function (cut, res, sr) {
+    cut = clamp(cut, 18, sr * 0.45);
+    var gg = Math.tan(Math.PI * cut / sr);
+    var k = 2 - 1.92 * clamp(res, 0, 0.99);
+    this.k = k;
+    var a1 = 1 / (1 + gg * (gg + k));
+    this.a1 = a1; this.a2 = gg * a1; this.a3 = gg * this.a2;
+  };
+  SVF.prototype.process = function (x) {
+    var v3 = x - this.ic2;
+    var v1 = this.a1 * this.ic1 + this.a2 * v3;
+    var v2 = this.ic2 + this.a2 * this.ic1 + this.a3 * v3;
+    this.ic1 = 2 * v1 - this.ic1;
+    this.ic2 = 2 * v2 - this.ic2;
+    switch (this.mode) {
+      case 1: return v2;
+      case 2: return x - this.k * v1 - v2;
+      case 3: return v1;
+      case 4: return x - this.k * v1;
+      default: return x;
+    }
+  };
+  SVF.prototype.reset = function () { this.ic1 = 0; this.ic2 = 0; };
+
+  function polyblep(t, dt) {
+    if (t < dt) { t /= dt; return t + t - t * t - 1; }
+    if (t > 1 - dt) { t = (t - 1) / dt; return t * t + t + t + 1; }
+    return 0;
+  }
+
+  /* ------------------------------------------------------------- 包络/LFO */
+  function Env() {
+    this.v = 0; this.stage = 0; this.a = 0.005; this.d = 0.5; this.s = 0.8; this.r = 0.3;
+    this.curve = 0; this.vel = 0;
+  }
+  Env.prototype.set = function (a, d, s, r, curve) {
+    this.a = Math.max(0.0005, a); this.d = Math.max(0.0005, d);
+    this.s = clamp(s, 0, 1); this.r = Math.max(0.0005, r); this.curve = curve;
+  };
+  Env.prototype.gate = function (on) {
+    if (on) { this.stage = 1; }
+    else if (this.stage !== 0 && this.stage !== 4) { this.stage = 4; }
+  };
+  Env.prototype.reset = function () { this.v = 0; this.stage = 0; };
+  Env.prototype.tick = function (dt) {
+    // 时间常数按标称时间标定：attack 到顶≈a，decay 到 s≈d，release 到 -60dB≈r
+    var sh = this.curve > 0 ? 1 / (1 + this.curve * 2) : 1 + (-this.curve) * 2;
+    var v = this.v;
+    if (this.stage === 1) {
+      var ca = 1 - Math.exp(-dt / (this.a * 0.585 * sh + 0.0003));
+      v += (1.22 - v) * ca;
+      if (v >= 1) { v = 1; this.stage = 2; }
+    } else if (this.stage === 2) {
+      var cd = 1 - Math.exp(-dt / (this.d * 0.22 * sh + 0.0003));
+      v += (this.s - v) * cd;
+      if (Math.abs(v - this.s) < 0.0015) { v = this.s; this.stage = this.s < 0.0005 ? 0 : 3; }
+    } else if (this.stage === 3) {
+      v = this.s;
+    } else if (this.stage === 4) {
+      var cr = 1 - Math.exp(-dt / (this.r * 0.135 / sh + 0.0003));
+      v += (0 - v) * cr;
+      if (v < 0.0006) { v = 0; this.stage = 0; }
+    } else {
+      v = 0;
+    }
+    this.v = v;
+    return v;
+  };
+  Env.prototype.busy = function () { return this.stage !== 0; };
+
+  function Lfo() {
+    this.ph = 0; this.shape = 0; this.rate = 1; this.amp = 1; this.uni = 0;
+    this.rnd = Math.random(); this.smooth = 0; this.glide = 0;
+  }
+  Lfo.prototype.tick = function (dt) {
+    var prev = this.ph;
+    this.ph += dt * this.rate;
+    if (this.ph >= 1) {
+      this.ph -= Math.floor(this.ph);
+      this.stepVal = Math.random() * 2 - 1;
+    }
+    var p = this.ph, v;
+    switch (this.shape) {
+      case 0: v = Math.sin(p * TAU); break;
+      case 1: v = 1 - 4 * Math.abs(p - 0.5); break;
+      case 2: v = p * 2 - 1; break;
+      case 3: v = 1 - p * 2; break;
+      case 4: v = p < 0.5 ? 1 : -1; break;
+      case 5: v = this.stepVal || 0; break;
+      case 6:
+        this.smooth += ((this.stepVal || 0) - this.smooth) * clamp(dt * 6, 0, 1);
+        v = this.smooth;
+        break;
+      default: v = 0;
+    }
+    this.out = (this.uni ? (v * 0.5 + 0.5) : v) * this.amp;
+    return this.out;
+  };
+  Lfo.prototype.resetPhase = function (ph) { this.ph = ph || 0; this.stepVal = Math.random() * 2 - 1; this.smooth = 0; this.out = 0; };
+
+  function Chaos() {
+    this.v = 0; this.s1 = 0; this.s2 = 0; this.rate = 0.6; this.smooth = 0.6;
+  }
+  Chaos.prototype.tick = function (dt) {
+    var n = Math.random() * 2 - 1;
+    var a = clamp(dt * this.rate * 12, 0.0001, 1);
+    this.s1 += (n - this.s1) * a;
+    this.s2 += (this.s1 - this.s2) * a * (0.4 + this.smooth * 2);
+    this.v = clamp(this.s2 * 1.6, -1, 1);
+    return this.v;
+  };
+
+  /* ------------------------------------------------------------------ 声部 */
+  function Voice(eng) {
+    this.eng = eng;
+    this.active = false;
+    this.midi = 60; this.vel = 1; this.age = 0; this.rnd = 0;
+    this.phase = new Float32Array(20);     // 4 槽 × 5 齐奏
+    this.mphase = new Float32Array(4);
+    this.fbprev = new Float32Array(4);
+    this.pinkLp = new Float32Array(4);
+    this.filt = [new SVF(1), new SVF(1), new SVF(1), new SVF(1)];
+    this.gfilt = new SVF(1);
+    this.envs = [new Env(), new Env(), new Env()];
+    this.lfos = [new Lfo(), new Lfo()];
+    this.chaos = new Chaos();
+    this.mod = new Float32Array(NSLOT);
+    this.src = new Float32Array(12);
+    this.gp = [{}, {}, {}, {}];
+    this.step = new Float32Array(20);
+    this.pL = new Float32Array(20);
+    this.pR = new Float32Array(20);
+    this.lvlPrev = new Float32Array(4);
+    this.bufL = new Float32Array(32);
+    this.bufR = new Float32Array(32);
+    this.tmpL = new Float32Array(32);
+    this.tmpR = new Float32Array(32);
+    this.freq = 60;
+    this.target = 60;
+  }
+  Voice.prototype.start = function (midi, vel, poly) {
+    this.midi = midi;
+    this.vel = vel;
+    this.active = true;
+    this.rnd = Math.random() * 2 - 1;
+    this.target = midi;
+    if (!this.eng.glideActive) this.freq = midi;
+    for (var i = 0; i < this.phase.length; i++) this.phase[i] = Math.random();
+    this.mphase[0] = Math.random(); this.fbprev[0] = 0;
+    for (var e = 0; e < 3; e++) this.envs[e].gate(true);
+    for (var l = 0; l < 2; l++) this.lfos[l].resetPhase(this.eng.patch['lfo' + l + '.phase']);
+    for (var f = 0; f < 4; f++) { this.filt[f].reset(); this.lvlPrev[f] = 0; this.pinkLp[f] = 0; }
+    this.gfilt.reset();
+  };
+  Voice.prototype.release = function () {
+    for (var e = 0; e < 3; e++) this.envs[e].gate(false);
+  };
+  Voice.prototype.kill = function () {
+    this.active = false;
+    for (var e = 0; e < 3; e++) this.envs[e].reset();
+  };
+
+  /* ------------------------------------------------------------------ 效果 */
+  function makeFx(type, sr) {
+    var f = { type: type, sr: sr, p1: 0.5, p2: 0.5, p3: 0.5, mix: 0.3, st: {} };
+    if (type === 2) { // chorus
+      f.st.bufL = new Float32Array(sr * 2 | 0); f.st.bufR = new Float32Array(sr * 2 | 0);
+      f.st.w = 0; f.st.ph = 0;
+    } else if (type === 3) { // phaser
+      f.st.apL = [0, 0, 0, 0, 0, 0]; f.st.apR = [0, 0, 0, 0, 0, 0]; f.st.ph = 0;
+    } else if (type === 4) { // delay
+      var d = sr * 1.2 | 0;
+      f.st.bufL = new Float32Array(d); f.st.bufR = new Float32Array(d);
+      f.st.w = 0; f.st.lpL = 0; f.st.lpR = 0;
+    } else if (type === 5) { // reverb
+      var combs = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617];
+      var aps = [556, 441, 341, 225];
+      f.st.combL = []; f.st.combR = []; f.st.apL = []; f.st.apR = [];
+      for (var i = 0; i < 8; i++) {
+        var cl = Math.round(combs[i] * sr / 44100), cr = Math.round((combs[i] + 23) * sr / 44100);
+        f.st.combL.push({ b: new Float32Array(cl), w: 0, lp: 0 });
+        f.st.combR.push({ b: new Float32Array(cr), w: 0, lp: 0 });
+      }
+      for (var j = 0; j < 4; j++) {
+        var al = Math.round(aps[j] * sr / 44100), ar = Math.round((aps[j] + 19) * sr / 44100);
+        f.st.apL.push({ b: new Float32Array(al), w: 0 });
+        f.st.apR.push({ b: new Float32Array(ar), w: 0 });
+      }
+    } else if (type === 6) { // eq tilt
+      f.st.xl = 0; f.st.xr = 0; f.st.lL = 0; f.st.lR = 0;
+    } else if (type === 7) { // comp
+      f.st.env = 0;
+    } else if (type === 8) { // filter
+      f.st.fl = new SVF(1); f.st.fr = new SVF(1);
+    } else if (type === 0) { // drive
+      f.st.lpL = 0; f.st.lpR = 0;
+    }
+    return f;
+  }
+
+  /* ------------------------------------------------------------------ 引擎 */
+  function Engine(sr) {
+    this.sr = sr || 48000;
+    if (!TABLES) buildTables();
+    this.patch = {};
+    for (var id in P) this.patch[id] = P[id].def;
+    this.voices = [];
+    for (var i = 0; i < 16; i++) this.voices.push(new Voice(this));
+    this.ghost = new Voice(this);
+    this.c = null;
+    this.fxs = [];
+    this.bend = 0;
+    this.mw = 0;
+    this.at = 0;
+    this.glideActive = false;
+    this.noteCounter = 0;
+    this.gmod = new Float32Array(NSLOT);
+    this.dcXl = 0; this.dcXr = 0; this.dcYl = 0; this.dcYr = 0;
+    this.gainS = 0.8;
+    this.meter = 0;
+    this.muteGain = 1;
+    this.muteTarget = 1;
+    this._pendingPatch = null;
+    this._panicPending = false;
+    this.activeVoices = 0;
+    this.compile();
+  }
+
+  Engine.prototype.setPatch = function (patch) {
+    // 有音在响时先做 4ms 淡出，再换音色，避免切换爆音
+    if ((this.activeVoices || 0) > 0) {
+      this._pendingPatch = patch;
+      this.muteTarget = 0;
+    } else {
+      this.applyPatch(patch);
+    }
+  };
+  Engine.prototype.applyPatch = function (patch) {
+    for (var id in P) {
+      var v = patch[id];
+      this.patch[id] = (typeof v === 'number' && isFinite(v)) ? v : P[id].def;
+    }
+    if (patch.mods && typeof patch.mods.length === 'number') this.patch.__mods = patch.mods.slice();
+    this.compile();
+  };
+  Engine.prototype.setParam = function (id, v) {
+    if (!P[id]) return;
+    if (P[id].kind === 'int' || P[id].kind === 'enum') v = Math.round(v);
+    v = clamp(v, P[id].min, P[id].max);
+    this.patch[id] = v;
+    this.compile();
+  };
+  Engine.prototype.setMods = function (mods) {
+    this.patch.__mods = mods || [];
+    this.compile();
+  };
+
+  Engine.prototype.compile = function () {
+    var sr = this.sr, pt = this.patch;
+    var c = { sr: sr, base: new Float32Array(NSLOT), gens: [], envs: [], lfos: [] };
+
+    c.poly = clamp(Math.round(pt['voice.poly']), 1, 16);
+    c.unison = clamp(Math.round(pt['voice.unison']), 1, 5);
+    c.detune = pt['voice.detune'];
+    c.spread = pt['voice.spread'];
+    c.glide = pt['voice.glide'] / 1000;
+    c.bendRange = pt['voice.bend'];
+
+    for (var g = 0; g < 4; g++) {
+      c.gens.push({
+        on: !!Math.round(pt['gen' + g + '.on']),
+        type: Math.round(pt['gen' + g + '.type']),
+        level: pt['gen' + g + '.level'],
+        pan: pt['gen' + g + '.pan'],
+        tune: pt['gen' + g + '.tune'],
+        cut: pt['gen' + g + '.cut'],
+        res: pt['gen' + g + '.res'],
+        ftype: Math.round(pt['gen' + g + '.ftype']),
+        wave: Math.round(pt['gen' + g + '.wave']),
+        pwm: pt['gen' + g + '.pwm'],
+        table: clamp(Math.round(pt['gen' + g + '.table']), 0, TABLES.length - 1),
+        morph: pt['gen' + g + '.morph'],
+        ratio: pt['gen' + g + '.ratio'],
+        index: pt['gen' + g + '.index'],
+        fb: pt['gen' + g + '.fb'],
+        color: pt['gen' + g + '.color'],
+        tab: TABLES[clamp(Math.round(pt['gen' + g + '.table']), 0, TABLES.length - 1)]
+      });
+    }
+    c.flt = {
+      on: !!Math.round(pt['flt.on']), type: Math.round(pt['flt.type']),
+      cut: pt['flt.cut'], res: pt['flt.res'], drive: pt['flt.drive']
+    };
+    for (var e = 0; e < 3; e++) {
+      c.envs.push({
+        a: pt['env' + e + '.a'], d: pt['env' + e + '.d'], s: pt['env' + e + '.s'],
+        r: pt['env' + e + '.r'], curve: pt['env' + e + '.curve'], vel: pt['env' + e + '.vel']
+      });
+    }
+    for (var l = 0; l < 2; l++) {
+      c.lfos.push({
+        rate: pt['lfo' + l + '.rate'], shape: Math.round(pt['lfo' + l + '.shape']),
+        sync: !!Math.round(pt['lfo' + l + '.sync']), div: Math.round(pt['lfo' + l + '.div']),
+        phase: pt['lfo' + l + '.phase'], amp: pt['lfo' + l + '.amp'],
+        uni: !!Math.round(pt['lfo' + l + '.uni'])
+      });
+    }
+    c.chaos = { rate: pt['chaos.rate'], smooth: pt['chaos.smooth'] };
+    c.macro = pt['macro.val'];
+    c.tempo = pt['tempo'];
+    c.gain = pt['voice.gain'];
+
+    // 基础值归一化（供调制使用）
+    for (var id in P) {
+      var d = P[id];
+      if (d.slot >= 0) c.base[d.slot] = toNorm(d, pt[id]);
+    }
+
+    // 效果链
+    var fxs = [];
+    for (var i = 0; i < 5; i++) {
+      var t = Math.round(pt['fx' + i + '.type']);
+      var fx = this.fxs[i];
+      if (!fx || fx.type !== t) fx = makeFx(t, sr);
+      fx.on = !!Math.round(pt['fx' + i + '.on']);
+      fx.p1 = pt['fx' + i + '.p1'];
+      fx.p2 = pt['fx' + i + '.p2'];
+      fx.p3 = pt['fx' + i + '.p3'];
+      fx.mix = pt['fx' + i + '.mix'];
+      fx.slotBase = [P['fx' + i + '.p1'].slot, P['fx' + i + '.p2'].slot, P['fx' + i + '.p3'].slot, P['fx' + i + '.mix'].slot];
+      fxs.push(fx);
+    }
+    this.fxs = fxs;
+
+    // 调制矩阵
+    var mods = [];
+    var raw = this.patch.__mods || [];
+    for (var m = 0; m < raw.length; m++) {
+      var it = raw[m];
+      var pd = P[it.target];
+      if (!pd || pd.slot < 0) continue;
+      var si = MOD_SOURCES.indexOf(it.src);
+      if (si < 0) continue;
+      mods.push({ si: si, slot: pd.slot, amt: clamp(it.amt, -1, 1) });
+    }
+    c.mods = mods;
+    c.modSlots = new Uint8Array(NSLOT);
+    for (var k = 0; k < mods.length; k++) c.modSlots[mods[k].slot] = 1;
+    this.c = c;
+    this.glideActive = c.glide > 0.0005;
+  };
+
+  /* 取声部参数：基础 + 调制 */
+  Engine.prototype.val = function (voice, id) {
+    var d = P[id];
+    if (d.slot < 0) return this.patch[id];
+    var base = this.c.base[d.slot];
+    return fromNorm(d, base + voice.mod[d.slot]);
+  };
+
+  Engine.prototype.noteOn = function (midi, vel) {
+    var c = this.c;
+    var free = null, oldest = null, maxAge = -1, count = 0;
+    for (var i = 0; i < 16; i++) {
+      var v = this.voices[i];
+      if (v.active) {
+        count++;
+        if (v.age > maxAge) { maxAge = v.age; oldest = v; }
+      } else if (!free) free = v;
+    }
+    // 超过复音数就抢占最老的声部
+    var use = (count >= c.poly) ? oldest : (free || oldest);
+    if (!use) return;
+    use.age = this.noteCounter++;
+    use.start(midi, vel, c.poly);
+    if (!this.glideActive) use.freq = midi;
+    this.lastVoice = use;
+  };
+  Engine.prototype.noteOff = function (midi) {
+    for (var i = 0; i < 16; i++) {
+      var v = this.voices[i];
+      if (v.active && v.midi === midi && v.envs[0].stage !== 4) v.release();
+    }
+  };
+  Engine.prototype.allOff = function () {
+    for (var i = 0; i < 16; i++) this.voices[i].kill();
+    // 先淡出，再清效果器尾音
+    this.muteTarget = 0;
+    this._panicPending = true;
+  };
+  Engine.prototype.setBend = function (v) { this.bend = clamp(v, -1, 1); };
+  Engine.prototype.setModWheel = function (v) { this.mw = clamp(v, 0, 1); };
+  Engine.prototype.setAftertouch = function (v) { this.at = clamp(v, 0, 1); };
+
+  /* -------------------------------------------------------------- 声部渲染 */
+  Voice.prototype.updateMods = function (eng, dt) {
+    var c = eng.c, sr = eng.sr;
+    var e0 = c.envs;
+    for (var e = 0; e < 3; e++) {
+      var env = this.envs[e];
+      env.set(e0[e].a, e0[e].d, e0[e].s, e0[e].r, e0[e].curve);
+      env.tick(dt);
+    }
+    for (var l = 0; l < 2; l++) {
+      var lo = this.lfos[l], lc = c.lfos[l];
+      lo.shape = lc.shape;
+      lo.amp = lc.amp;
+      lo.uni = lc.uni;
+      var rate = lc.rate;
+      if (lc.sync) {
+        var bpm = c.tempo, beats = [16, 8, 4, 2, 1, 0.5, 0.25, 0.125][lc.div] || 1;
+        rate = (bpm / 60) / beats;
+      }
+      lo.rate = rate;
+      lo.tick(dt);
+    }
+    var ch = this.chaos;
+    ch.rate = c.chaos.rate; ch.smooth = c.chaos.smooth;
+    ch.tick(dt);
+
+    var s = this.src;
+    var v0 = this.vel;
+    s[0] = this.envs[0].v * (1 - e0[0].vel + e0[0].vel * v0);
+    s[1] = this.envs[1].v * (1 - e0[1].vel + e0[1].vel * v0);
+    s[2] = this.envs[2].v * (1 - e0[2].vel + e0[2].vel * v0);
+    s[3] = this.lfos[0].out;
+    s[4] = this.lfos[1].out;
+    s[5] = ch.v;
+    s[6] = c.macro;
+    s[7] = this.vel;
+    s[8] = clamp((this.midi - 60) / 36, -1, 1);
+    s[9] = eng.mw;
+    s[10] = eng.at;
+    s[11] = this.rnd;
+
+    this.mod.fill(0);
+    for (var m = 0; m < c.mods.length; m++) {
+      var mm = c.mods[m];
+      this.mod[mm.slot] += mm.amt * s[mm.si];
+    }
+  };
+
+  Voice.prototype.render = function (eng, L, R, off, len) {
+    var c = eng.c, sr = eng.sr, dt = len / sr;
+    this.age++;
+
+    var bend = eng.bend * c.bendRange;
+    var glideCoef = c.glide > 0.0005 ? 1 - Math.exp(-dt / Math.max(0.0008, c.glide * 0.25)) : 1;
+    this.freq += (this.target - this.freq) * glideCoef;
+    this.updateMods(eng, dt);
+
+    var nUni = c.unison, detune = c.detune, spread = c.spread;
+    var noteFreq = midiHz(this.freq + bend);
+    var gens = c.gens, gp = this.gp;
+    var step = this.step, pL = this.pL, pR = this.pR;
+    var s, g, u;
+
+    var bufL = this.bufL, bufR = this.bufR;
+    for (s = 0; s < len; s++) { bufL[s] = 0; bufR[s] = 0; }
+    var gk = nUni > 1 ? 1 / Math.sqrt(nUni) : 1;
+
+    for (g = 0; g < 4; g++) {
+      var G = gens[g], q = gp[g];
+      q.on = G.on; q.type = G.type; q.wave = G.wave; q.ftype = G.ftype; q.tab = G.tab;
+      if (!G.on) { this.lvlPrev[g] = 0; continue; }
+
+      q.lvl = clamp(eng.val(this, 'gen' + g + '.level'), 0, 1.4);
+      q.pan = clamp(eng.val(this, 'gen' + g + '.pan'), -1, 1);
+      q.tune = eng.val(this, 'gen' + g + '.tune');
+      q.cut = eng.val(this, 'gen' + g + '.cut');
+      q.res = clamp(eng.val(this, 'gen' + g + '.res'), 0, 0.99);
+      q.morph = clamp(eng.val(this, 'gen' + g + '.morph'), 0, 1);
+      q.idx = clamp(eng.val(this, 'gen' + g + '.index'), 0, 24);
+      q.pwm = clamp(eng.val(this, 'gen' + g + '.pwm'), 0.02, 0.98);
+      q.ratio = clamp(eng.val(this, 'gen' + g + '.ratio'), 0.1, 32);
+      q.fb = clamp(eng.val(this, 'gen' + g + '.fb'), 0, 1);
+      q.color = clamp(eng.val(this, 'gen' + g + '.color'), 0, 1);
+      q.lvlA = this.lvlPrev[g];
+      q.lvlB = q.lvl;
+      this.lvlPrev[g] = q.lvl;
+
+      var fbase = noteFreq * Math.pow(2, q.tune / 12);
+      for (u = 0; u < nUni; u++) {
+        var sp = nUni === 1 ? 0 : (u / (nUni - 1) * 2 - 1);
+        step[g * 5 + u] = (fbase * Math.pow(2, (sp * detune) / 1200)) / sr;
+        var pan = clamp(q.pan + sp * spread, -1, 1);
+        pL[g * 5 + u] = Math.cos((pan + 1) * Math.PI * 0.25) * gk;
+        pR[g * 5 + u] = Math.sin((pan + 1) * Math.PI * 0.25) * gk;
+      }
+
+      var filt = this.filt[g];
+      if (q.ftype) { filt.mode = q.ftype; filt.set(q.cut, q.res, sr); }
+
+      var tL = this.tmpL, tR = this.tmpR;
+      for (s = 0; s < len; s++) { tL[s] = 0; tR[s] = 0; }
+
+      if (q.type === 0) {                       /* ---- 模拟振荡器 ---- */
+        var w = q.wave, pw = q.pwm;
+        for (u = 0; u < nUni; u++) {
+          var pi2 = g * 5 + u, ph = this.phase[pi2], dtp = step[pi2];
+          var pl = pL[pi2], pr = pR[pi2], o = 0;
+          if (w === 3) {
+            for (s = 0; s < len; s++) {
+              o = Math.sin(ph * TAU); tL[s] += o * pl; tR[s] += o * pr;
+              ph += dtp; if (ph >= 1) ph -= 1;
+            }
+          } else if (w === 0) {
+            for (s = 0; s < len; s++) {
+              o = 2 * ph - 1 - polyblep(ph, dtp); tL[s] += o * pl; tR[s] += o * pr;
+              ph += dtp; if (ph >= 1) ph -= 1;
+            }
+          } else if (w === 1) {
+            for (s = 0; s < len; s++) {
+              var b2 = ph + 0.5; if (b2 >= 1) b2 -= 1;
+              o = (ph < 0.5 ? 1 : -1) + polyblep(ph, dtp) - polyblep(b2, dtp);
+              tL[s] += o * pl; tR[s] += o * pr;
+              ph += dtp; if (ph >= 1) ph -= 1;
+            }
+          } else {
+            for (s = 0; s < len; s++) {
+              var edge = ph + 1 - pw; if (edge >= 1) edge -= 1;
+              o = (ph < pw ? 1 : -1) + polyblep(ph, dtp) - polyblep(edge, dtp);
+              tL[s] += o * pl; tR[s] += o * pr;
+              ph += dtp; if (ph >= 1) ph -= 1;
+            }
+          }
+          this.phase[pi2] = ph;
+        }
+      } else if (q.type === 1) {                /* ---- 波表 ---- */
+        var tab = q.tab, mo = q.morph, m0 = 1 - mo;
+        for (u = 0; u < nUni; u++) {
+          var pi3 = g * 5 + u, ph3 = this.phase[pi3], dtp3 = step[pi3];
+          var mip = mipLevel(dtp3 * sr, sr);
+          var A = tab.a[mip], B = tab.b[mip];
+          var pl3 = pL[pi3], pr3 = pR[pi3], o3 = 0;
+          for (s = 0; s < len; s++) {
+            var pos = ph3 * TSIZE, i0 = pos | 0, fr = pos - i0, i1 = (i0 + 1) & MASK;
+            var a0 = A[i0] * m0 + B[i0] * mo, a1 = A[i1] * m0 + B[i1] * mo;
+            o3 = a0 + (a1 - a0) * fr;
+            tL[s] += o3 * pl3; tR[s] += o3 * pr3;
+            ph3 += dtp3; if (ph3 >= 1) ph3 -= 1;
+          }
+          this.phase[pi3] = ph3;
+        }
+      } else if (q.type === 2) {                /* ---- FM 算子 ---- */
+        var mp = this.mphase[g], fb = q.fb * 0.6, ind = q.idx, ratio = q.ratio;
+        var fbNow = this.fbprev[g];
+        for (u = 0; u < nUni; u++) {
+          var pi4 = g * 5 + u, ph4 = this.phase[pi4], dtp4 = step[pi4];
+          var pl4 = pL[pi4], pr4 = pR[pi4], o4 = 0;
+          for (s = 0; s < len; s++) {
+            var modSig = Math.sin(mp * TAU + fbNow * fb);
+            fbNow = modSig;
+            o4 = Math.sin(ph4 * TAU + ind * modSig);
+            tL[s] += o4 * pl4; tR[s] += o4 * pr4;
+            ph4 += dtp4; if (ph4 >= 1) ph4 -= 1;
+            mp += dtp4 * ratio; if (mp >= 1) mp -= Math.floor(mp);
+          }
+          this.phase[pi4] = ph4;
+        }
+        this.mphase[g] = mp; this.fbprev[g] = fbNow;
+      } else {                                  /* ---- 噪声 ---- */
+        var col = q.color, pk = this.pinkLp[g];
+        for (u = 0; u < nUni; u++) {
+          var pi5 = g * 5 + u, ph5 = this.phase[pi5], dtp5 = step[pi5];
+          var pl5 = pL[pi5], pr5 = pR[pi5], o5 = 0;
+          for (s = 0; s < len; s++) {
+            var nz = Math.random() * 2 - 1;
+            pk += (nz - pk) * 0.08;
+            o5 = nz * col + pk * (1 - col) * 2.2;
+            tL[s] += o5 * pl5; tR[s] += o5 * pr5;
+            ph5 += dtp5; if (ph5 >= 1) ph5 -= 1;
+          }
+          this.phase[pi5] = ph5;
+        }
+        this.pinkLp[g] = pk;
+      }
+
+      /* 每发生器滤波：保留立体声，只把中置成分过一遍滤波器 */
+      if (q.ftype) {
+        for (s = 0; s < len; s++) {
+          var m = (tL[s] + tR[s]) * 0.5;
+          var f = filt.process(m);
+          tL[s] += f - m; tR[s] += f - m;
+        }
+      }
+
+      var lvA = q.lvlA, lvB = q.lvlB, inv = 1 / len;
+      for (s = 0; s < len; s++) {
+        var lv = lvA + (lvB - lvA) * (s * inv);
+        bufL[s] += tL[s] * lv;
+        bufR[s] += tR[s] * lv;
+      }
+    }
+
+    if (c.flt.on) {
+      this.gfilt.mode = c.flt.type;
+      this.gfilt.set(eng.val(this, 'flt.cut'), clamp(eng.val(this, 'flt.res'), 0, 0.99), sr);
+      var dr = eng.val(this, 'flt.drive'), dk = 1 + dr * 6, dnorm = dr > 0 ? Math.tanh(dk) : 1;
+      for (s = 0; s < len; s++) {
+        var m2 = (bufL[s] + bufR[s]) * 0.5;
+        var f2 = this.gfilt.process(m2);
+        if (dr > 0) f2 = Math.tanh(f2 * dk) / dnorm;
+        bufL[s] += f2 - m2; bufR[s] += f2 - m2;
+      }
+    }
+
+    var vg = 0.18 + 0.82 * Math.pow(this.vel, 1.3);
+    for (s = 0; s < len; s++) {
+      L[off + s] += bufL[s] * vg;
+      R[off + s] += bufR[s] * vg;
+    }
+
+    if (this.envs[0].stage === 0 && this.envs[1].stage === 0 && this.envs[2].stage === 0) this.active = false;
+  };
+
+  function mipLevel(f, sr) {
+    var h = (sr * 0.5) / (f > 20 ? f : 20);
+    return h >= 64 ? 0 : h >= 32 ? 1 : h >= 16 ? 2 : h >= 8 ? 3 : h >= 4 ? 4 : 5;
+  }
+
+  /* --------------------------------------------------------------- 效果处理 */
+  function processFx(fx, L, R, off, len, sr) {
+    if (!fx.on) return;
+    var p1 = fx.p1, p2 = fx.p2, p3 = fx.p3, mix = fx.mix, st = fx.st, i;
+    var t = fx.type;
+    if (t === 0) { // 驱动
+      var pre = 1 + p1 * 24;
+      var tone = 0.02 + p2 * 0.9;
+      for (i = 0; i < len; i++) {
+        var l = L[off + i] * pre, r = R[off + i] * pre;
+        l = Math.tanh(l) / Math.tanh(pre > 1 ? pre : 1);
+        r = Math.tanh(r) / Math.tanh(pre > 1 ? pre : 1);
+        st.lpL += (l - st.lpL) * tone;
+        st.lpR += (r - st.lpR) * tone;
+        L[off + i] = L[off + i] * (1 - mix) + st.lpL * mix;
+        R[off + i] = R[off + i] * (1 - mix) + st.lpR * mix;
+      }
+    } else if (t === 1) { // 降位
+      var bits = 16 - p1 * 14, step = Math.pow(2, bits) / 2;
+      var ds = 1 + Math.round(p2 * 60);
+      if (st.cnt === undefined) { st.cnt = 0; st.hl = 0; st.hr = 0; }
+      for (i = 0; i < len; i++) {
+        if (st.cnt % ds === 0) {
+          st.hl = Math.round(L[off + i] * step) / step;
+          st.hr = Math.round(R[off + i] * step) / step;
+        }
+        st.cnt++;
+        L[off + i] = L[off + i] * (1 - mix) + st.hl * mix;
+        R[off + i] = R[off + i] * (1 - mix) + st.hr * mix;
+      }
+    } else if (t === 2) { // 合唱
+      var bufL = st.bufL, bufR = st.bufR, len2 = bufL.length, w = st.w;
+      var rate = 0.05 + p1 * 3, depth = 0.002 + p2 * 0.008;
+      var ph = st.ph;
+      for (i = 0; i < len; i++) {
+        ph += rate / sr; if (ph >= 1) ph -= 1;
+        var d1 = (0.012 + Math.sin(ph * TAU) * depth) * sr;
+        var d2 = (0.019 + Math.sin((ph * 1.31 + 0.25) * TAU) * depth) * sr;
+        var r1 = w - d1 | 0, r2 = w - d2 | 0;
+        if (r1 < 0) r1 += len2; if (r2 < 0) r2 += len2;
+        var wl = bufL[r1] || 0, wr = bufR[r2] || 0;
+        bufL[w] = L[off + i] + wl * p3 * 0.5;
+        bufR[w] = R[off + i] + wr * p3 * 0.5;
+        w = (w + 1) % len2;
+        L[off + i] = L[off + i] * (1 - mix) + wl * mix;
+        R[off + i] = R[off + i] * (1 - mix) + wr * mix;
+      }
+      st.w = w; st.ph = ph;
+    } else if (t === 3) { // 移相
+      var apL = st.apL, apR = st.apR;
+      var fq = 0.1 + p1 * 2.4;
+      var ph2 = st.ph;
+      var fb2 = p3 * 0.9;
+      for (i = 0; i < len; i++) {
+        ph2 += fq / sr; if (ph2 >= 1) ph2 -= 1;
+        var fcoef = 0.2 + 0.75 * (0.5 + 0.5 * Math.sin(ph2 * TAU));
+        var inl = L[off + i] + (st.lastL || 0) * fb2;
+        var inr = R[off + i] + (st.lastR || 0) * fb2;
+        for (var s3 = 0; s3 < 6; s3++) {
+          var yl = fcoef * inl + apL[s3];
+          apL[s3] = inl - fcoef * yl; inl = yl;
+          var yr = fcoef * inr + apR[s3];
+          apR[s3] = inr - fcoef * yr; inr = yr;
+        }
+        st.lastL = inl; st.lastR = inr;
+        L[off + i] = L[off + i] * (1 - mix) + inl * mix;
+        R[off + i] = R[off + i] * (1 - mix) + inr * mix;
+      }
+      st.ph = ph2;
+    } else if (t === 4) { // 延迟
+      var bL = st.bufL, bR = st.bufR, ln = bL.length, w2 = st.w;
+      var dtime = (0.04 + p1 * 0.9) * sr;
+      var fb3 = p2 * 0.92;
+      var tone2 = 0.05 + p3 * 0.7;
+      for (i = 0; i < len; i++) {
+        var rd = w2 - dtime;
+        if (rd < 0) rd += ln;
+        var rdi = rd | 0;
+        var dl = bL[rdi], dr = bR[rdi];
+        st.lpL += (dl - st.lpL) * tone2;
+        st.lpR += (dr - st.lpR) * tone2;
+        bL[w2] = L[off + i] + st.lpR * fb3;
+        bR[w2] = R[off + i] + st.lpL * fb3;
+        w2 = (w2 + 1) % ln;
+        L[off + i] = L[off + i] * (1 - mix) + st.lpL * mix;
+        R[off + i] = R[off + i] * (1 - mix) + st.lpR * mix;
+      }
+      st.w = w2;
+    } else if (t === 5) { // 混响（Freeverb 简化）
+      var room = 0.72 + p1 * 0.2, damp = p2 * 0.7, wet = mix;
+      var cL = st.combL, cR = st.combR, aL2 = st.apL, aR2 = st.apR;
+      for (i = 0; i < len; i++) {
+        var inL = L[off + i] * 0.22, inR = R[off + i] * 0.22;
+        var sumL = 0, sumR = 0;
+        for (var ci = 0; ci < 8; ci++) {
+          var cb = cL[ci]; var y = cb.b[cb.w];
+          cb.lp = y * (1 - damp) + cb.lp * damp;
+          cb.b[cb.w] = inL + cb.lp * room;
+          cb.w = (cb.w + 1) % cb.b.length; sumL += y;
+          var cb2 = cR[ci]; var y2 = cb2.b[cb2.w];
+          cb2.lp = y2 * (1 - damp) + cb2.lp * damp;
+          cb2.b[cb2.w] = inR + cb2.lp * room;
+          cb2.w = (cb2.w + 1) % cb2.b.length; sumR += y2;
+        }
+        sumL *= 0.125; sumR *= 0.125;
+        for (var ai = 0; ai < 4; ai++) {
+          var ab = aL2[ai], bp = ab.b[ab.w];
+          ab.b[ab.w] = sumL + bp * 0.5;
+          ab.w = (ab.w + 1) % ab.b.length;
+          sumL = bp - sumL;
+          var ab2 = aR2[ai], bp2 = ab2.b[ab2.w];
+          ab2.b[ab2.w] = sumR + bp2 * 0.5;
+          ab2.w = (ab2.w + 1) % ab2.b.length;
+          sumR = bp2 - sumR;
+        }
+        L[off + i] = L[off + i] * (1 - wet) + sumL * wet;
+        R[off + i] = R[off + i] * (1 - wet) + sumR * wet;
+      }
+    } else if (t === 6) { // 均衡（倾斜 + 低频）
+      var tilt = (p1 - 0.5) * 2, lowg = (p2 - 0.5) * 2, higg = (p3 - 0.5) * 2;
+      var al = 1 - Math.exp(-TAU * 250 / sr), ah = 1 - Math.exp(-TAU * 3500 / sr);
+      for (i = 0; i < len; i++) {
+        var xl = L[off + i], xr = R[off + i];
+        st.lL += (xl - st.lL) * al; st.lR += (xr - st.lR) * al;
+        st.xl += (xl - st.xl) * ah; st.xr += (xr - st.xr) * ah;
+        var lowpL = st.lL, lowpR = st.lR, highL = xl - st.xl, highR = xr - st.xr, midL = st.xl - st.lL, midR = st.xr - st.lR;
+        var oL = midL * (1 + tilt * 0.5) + lowpL * (1 + lowg + tilt * 0.5) + highL * (1 + higg - tilt * 0.5);
+        var oR = midR * (1 + tilt * 0.5) + lowpR * (1 + lowg + tilt * 0.5) + highR * (1 + higg - tilt * 0.5);
+        L[off + i] = xl * (1 - mix) + oL * mix;
+        R[off + i] = xr * (1 - mix) + oR * mix;
+      }
+    } else if (t === 7) { // 压缩
+      var thr = 0.05 + p1 * 0.8, ratio = 1 + p2 * 12;
+      var att = Math.exp(-1 / (0.002 * sr));
+      var rel = Math.exp(-1 / ((0.06 + p3 * 0.5) * sr));
+      for (i = 0; i < len; i++) {
+        var pk = Math.max(Math.abs(L[off + i]), Math.abs(R[off + i]));
+        st.env = pk > st.env ? st.env * att + pk * (1 - att) : st.env * rel + pk * (1 - rel);
+        var over = st.env / thr;
+        var gain = over > 1 ? Math.pow(over, 1 / ratio - 1) : 1;
+        L[off + i] *= 1 + (gain - 1) * mix;
+        R[off + i] *= 1 + (gain - 1) * mix;
+      }
+    } else if (t === 8) { // 全局滤波
+      var cut = 80 * Math.pow(220, p1), res = p2 * 0.95;
+      st.fl.mode = 1; st.fr.mode = 1;
+      st.fl.set(cut, res, sr); st.fr.set(cut, res, sr);
+      for (i = 0; i < len; i++) {
+        var fl = st.fl.process(L[off + i]), fr = st.fr.process(R[off + i]);
+        L[off + i] = L[off + i] * (1 - mix) + fl * mix;
+        R[off + i] = R[off + i] * (1 - mix) + fr * mix;
+      }
+    } else if (t === 9) { // 立体声宽度
+      var w3 = p1 * 1.6, mg = 1 + (p2 - 0.5) * 0.8;
+      for (i = 0; i < len; i++) {
+        var ml = (L[off + i] + R[off + i]) * 0.5, sl = (L[off + i] - R[off + i]) * 0.5;
+        ml *= mg;
+        var nl = ml + sl * w3, nr = ml - sl * w3;
+        L[off + i] = L[off + i] * (1 - mix) + nl * mix;
+        R[off + i] = R[off + i] * (1 - mix) + nr * mix;
+      }
+    }
+  }
+
+  /* ----------------------------------------------------------------- 主渲染 */
+  Engine.prototype.process = function (L, R, frames) {
+    if (!this.c) return;
+    var i;
+    for (i = 0; i < frames; i++) { L[i] = 0; R[i] = 0; }
+    for (var off = 0; off < frames; off += CHUNK) {
+      var len = Math.min(CHUNK, frames - off);
+      var c = this.c;
+      var active = 0;
+      var latest = null;
+      for (i = 0; i < 16; i++) {
+        var v = this.voices[i];
+        if (v.active) {
+          v.render(this, L, R, off, len);
+          if (v.active) active++;
+          if (!latest || v.age > latest.age) latest = v;
+        }
+      }
+      if (!latest) latest = this.ghost;
+      if (!latest.active) {
+        var gdt = len / this.sr;
+        latest.updateMods(this, gdt);
+        latest.mod.fill(0);
+      }
+      // 全局调制镜像
+      var mods = c.mods, g = this.gmod;
+      g.fill(0);
+      for (i = 0; i < mods.length; i++) {
+        var mm = mods[i];
+        g[mm.slot] += mm.amt * latest.src[mm.si];
+      }
+      // 效果参数（含调制）
+      for (i = 0; i < 5; i++) {
+        var fx = this.fxs[i];
+        fx.p1 = clamp(fromNorm(P['fx' + i + '.p1'], c.base[P['fx' + i + '.p1'].slot] + g[P['fx' + i + '.p1'].slot]), 0, 1);
+        fx.p2 = clamp(fromNorm(P['fx' + i + '.p2'], c.base[P['fx' + i + '.p2'].slot] + g[P['fx' + i + '.p2'].slot]), 0, 1);
+        fx.p3 = clamp(fromNorm(P['fx' + i + '.p3'], c.base[P['fx' + i + '.p3'].slot] + g[P['fx' + i + '.p3'].slot]), 0, 1);
+        fx.mix = clamp(fromNorm(P['fx' + i + '.mix'], c.base[P['fx' + i + '.mix'].slot] + g[P['fx' + i + '.mix'].slot]), 0, 1);
+      }
+      this.meterVoices = active;
+      for (i = 0; i < 5; i++) processFx(this.fxs[i], L, R, off, len, this.sr);
+
+      // 主输出（含换音色/静音时的淡入淡出）
+      this.gainS += (c.gain - this.gainS) * 0.25;
+      var gain = this.gainS;
+      var mg0 = this.muteGain;
+      var mg1 = mg0 + (this.muteTarget - mg0) * (1 - Math.exp(-len / (0.004 * this.sr)));
+      this.muteGain = mg1;
+      for (i = 0; i < len; i++) {
+        var mg = mg0 + (mg1 - mg0) * (i / len);
+        var l = L[off + i] * gain * mg, r = R[off + i] * gain * mg;
+        l = Math.tanh(l * 1.1) * 0.97;
+        r = Math.tanh(r * 1.1) * 0.97;
+        // DC 阻断（一阶高通）
+        this.dcYl = l - this.dcXl + 0.9985 * this.dcYl; this.dcXl = l; l = this.dcYl;
+        this.dcYr = r - this.dcXr + 0.9985 * this.dcYr; this.dcXr = r; r = this.dcYr;
+        // 硬限幅兜底
+        L[off + i] = l > 0.985 ? 0.985 : l < -0.985 ? -0.985 : l;
+        R[off + i] = r > 0.985 ? 0.985 : r < -0.985 ? -0.985 : r;
+      }
+      // 淡出到位后：应用待切换的音色 / 清掉效果器尾音
+      if (this._pendingPatch && this.muteGain < 0.01) {
+        var pp = this._pendingPatch;
+        this._pendingPatch = null;
+        this.applyPatch(pp);
+        this.muteTarget = 1;
+      }
+      if (this._panicPending && this.muteGain < 0.01) {
+        this._panicPending = false;
+        this.fxs = [];
+        this.compile();
+        this.muteGain = 1;
+        this.muteTarget = 1;
+      }
+      var sum = 0;
+      for (i = 0; i < len; i++) sum += L[off + i] * L[off + i] + R[off + i] * R[off + i];
+      this.meter = this.meter * 0.8 + Math.sqrt(sum / (len * 2)) * 0.2;
+      this.activeVoices = active;
+    }
+  };
+
+  /* 离线渲染（测试用）：返回 [L,R] */
+  Engine.prototype.renderOffline = function (seconds, notes) {
+    var n = Math.floor(seconds * this.sr);
+    var L = new Float32Array(n), R = new Float32Array(n);
+    var block = 128;
+    var time = 0;
+    var pending = (notes || []).slice().sort(function (a, b) { return a.t - b.t; });
+    var pi = 0;
+    for (var off = 0; off < n; off += block) {
+      var len = Math.min(block, n - off);
+      while (pi < pending.length && pending[pi].t * this.sr <= off) {
+        var ev = pending[pi++];
+        if (ev.on) this.noteOn(ev.midi, ev.vel === undefined ? 1 : ev.vel);
+        else this.noteOff(ev.midi);
+      }
+      this.process(L.subarray(off, off + len), R.subarray(off, off + len), len);
+    }
+    return [L, R];
+  };
+
+  /* ------------------------------------------------------------------ 导出 */
+  var PLANT = {
+    Engine: Engine,
+    PARAMS: P,
+    NSLOT: NSLOT,
+    MOD_SOURCES: MOD_SOURCES,
+    MOD_LABELS: MOD_LABELS,
+    SOURCE_COLORS: SOURCE_COLORS,
+    GEN_TYPES: GEN_TYPES, GEN_TYPES_EN: GEN_TYPES_EN,
+    WAVES: WAVES, WAVES_EN: WAVES_EN,
+    FTYPES: FTYPES, FTYPES_EN: FTYPES_EN,
+    FX_TYPES: FX_TYPES, FX_EN: FX_EN,
+    LFO_SHAPES: LFO_SHAPES, LFO_DIVS: LFO_DIVS,
+    TABLE_NAMES: ['锯齿/方波', '正弦/三角', '管风琴', '人声', '金属', '数字'],
+    toNorm: toNorm,
+    fromNorm: fromNorm,
+    defaults: function () {
+      var o = {};
+      for (var id in P) o[id] = P[id].def;
+      return o;
+    },
+    version: '1.0.0'
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = PLANT;
+  root.PLANT = PLANT;
+})(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this));
+</script>
+<script id="presets-src" type="text/plain">/* ============================================================================
+ * PLANT-1 预设音色库
+ * 每个预设 = 参数覆盖表 + 调制连线。缺省参数由引擎的 PARAMS 默认值补齐。
+ * ==========================================================================*/
+(function (root) {
+  'use strict';
+
+  function m(src, target, amt) { return { src: src, target: target, amt: amt }; }
+
+  var PRESETS = [
+    {
+      name: '初始化', en: 'INIT', tags: ['基础'],
+      params: {
+        'gen0.type': 0, 'gen0.wave': 0, 'gen0.level': 0, 'gen0.cut': 6000, 'gen0.res': 0.1,
+        'gen1.on': 0, 'gen2.on': 0, 'gen3.on': 0,
+        'flt.on': 0,
+        'env0.a': 0.005, 'env0.d': 0.9, 'env0.s': 0.7, 'env0.r': 0.4
+      },
+      mods: [m('env1', 'gen0.level', 0.8)]
+    },
+    {
+      name: 'DX 玻璃钟', en: 'GLASS BELL', tags: ['FM', '钟'],
+      params: {
+        'gen0.type': 2, 'gen0.level': 0, 'gen0.ratio': 3.5, 'gen0.index': 0, 'gen0.fb': 0.08,
+        'gen1.type': 2, 'gen1.on': 1, 'gen1.level': 0, 'gen1.ratio': 7.01, 'gen1.index': 0,
+        'gen1.tune': 12, 'gen1.pan': 0.35,
+        'env0.a': 0.002, 'env0.d': 2.2, 'env0.s': 0, 'env0.r': 2.4,
+        'env1.a': 0.001, 'env1.d': 0.55, 'env1.s': 0, 'env1.r': 0.5,
+        'env2.a': 0.4, 'env2.d': 1.6, 'env2.s': 0.25, 'env2.r': 1.2,
+        'fx2.on': 1, 'fx2.type': 4, 'fx2.p1': 0.34, 'fx2.p2': 0.35, 'fx2.p3': 0.5, 'fx2.mix': 0.22,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.62, 'fx3.p2': 0.42, 'fx3.mix': 0.3
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.9), m('env1', 'gen1.level', 0.8),
+        m('env2', 'gen0.index', 0.55), m('env2', 'gen1.index', 0.45),
+        m('env3', 'gen0.pan', 0.1)
+      ]
+    },
+    {
+      name: 'FM 低音', en: 'FM BASS', tags: ['FM', '低音'],
+      params: {
+        'voice.poly': 4, 'voice.gain': 0.85,
+        'gen0.type': 2, 'gen0.level': 0, 'gen0.ratio': 1, 'gen0.index': 1.6, 'gen0.fb': 0.3,
+        'gen0.tune': -12,
+        'gen1.type': 2, 'gen1.on': 1, 'gen1.level': 0, 'gen1.ratio': 2.01, 'gen1.index': 0.6,
+        'gen1.tune': -12,
+        'flt.on': 1, 'flt.type': 1, 'flt.cut': 420, 'flt.res': 0.32, 'flt.drive': 0.25,
+        'env0.a': 0.002, 'env0.d': 0.5, 'env0.s': 0.45, 'env0.r': 0.16,
+        'env1.a': 0.001, 'env1.d': 0.16, 'env1.s': 0, 'env1.r': 0.12,
+        'env2.a': 0.001, 'env2.d': 0.28, 'env2.s': 0, 'env2.r': 0.2,
+        'fx0.on': 1, 'fx0.type': 0, 'fx0.p1': 0.35, 'fx0.p2': 0.55, 'fx0.mix': 0.35,
+        'fx1.on': 1, 'fx1.type': 7, 'fx1.p1': 0.5, 'fx1.p2': 0.45, 'fx1.p3': 0.3, 'fx1.mix': 0.6
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.85), m('env1', 'gen1.level', 0.5),
+        m('env2', 'flt.cut', 0.28), m('env2', 'gen1.index', 0.3), m('env1', 'gen0.index', 0.1)
+      ]
+    },
+    {
+      name: '超锯齿', en: 'SUPER SAW', tags: ['模拟', '铺底', '齐奏'],
+      params: {
+        'voice.unison': 5, 'voice.detune': 28, 'voice.spread': 0.9,
+        'gen0.type': 0, 'gen0.wave': 0, 'gen0.level': 0, 'gen0.cut': 9000, 'gen0.ftype': 1, 'gen0.res': 0.08,
+        'gen1.type': 0, 'gen1.wave': 0, 'gen1.on': 1, 'gen1.level': 0, 'gen1.tune': -12, 'gen1.cut': 5000,
+        'gen1.ftype': 1, 'gen1.res': 0.1, 'gen1.pan': -0.15,
+        'flt.on': 1, 'flt.type': 1, 'flt.cut': 7000, 'flt.res': 0.12,
+        'env0.a': 0.02, 'env0.d': 1.2, 'env0.s': 0.8, 'env0.r': 0.5,
+        'env1.a': 0.25, 'env1.d': 1.2, 'env1.s': 0.55, 'env1.r': 0.6,
+        'env2.a': 0.05, 'env2.d': 1.8, 'env2.s': 0.4, 'env2.r': 0.9,
+        'lfo0.rate': 0.18, 'lfo0.shape': 0,
+        'fx1.on': 1, 'fx1.type': 2, 'fx1.p1': 0.22, 'fx1.p2': 0.45, 'fx1.p3': 0.3, 'fx1.mix': 0.4,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.6, 'fx3.p2': 0.5, 'fx3.mix': 0.28
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.75), m('env1', 'gen1.level', 0.55),
+        m('lfo1', 'flt.cut', 0.18), m('env2', 'gen1.pan', 0.25), m('lfo1', 'gen0.pan', 0.12)
+      ]
+    },
+    {
+      name: '相位铺底', en: 'PHASE PAD', tags: ['波表', '铺底'],
+      params: {
+        'voice.unison': 3, 'voice.detune': 12, 'voice.spread': 0.8, 'voice.poly': 8, 'voice.gain': 0.7,
+        'gen0.type': 1, 'gen0.table': 0, 'gen0.morph': 0.35, 'gen0.level': 0,
+        'gen0.cut': 3200, 'gen0.ftype': 1, 'gen0.res': 0.22,
+        'gen1.type': 1, 'gen1.table': 3, 'gen1.on': 1, 'gen1.level': 0, 'gen1.morph': 0.6,
+        'gen1.tune': 12, 'gen1.pan': 0.3, 'gen1.cut': 4000, 'gen1.ftype': 1, 'gen1.res': 0.15,
+        'flt.on': 1, 'flt.type': 1, 'flt.cut': 4200, 'flt.res': 0.18,
+        'env0.a': 0.9, 'env0.d': 2.5, 'env0.s': 0.85, 'env0.r': 2.2, 'env0.curve': -0.2,
+        'env1.a': 2.2, 'env1.d': 3, 'env1.s': 0.9, 'env1.r': 3,
+        'lfo0.rate': 0.09, 'lfo0.shape': 0, 'lfo1.rate': 0.13, 'lfo1.shape': 0,
+        'fx1.on': 1, 'fx1.type': 2, 'fx1.p1': 0.12, 'fx1.p2': 0.7, 'fx1.p3': 0.25, 'fx1.mix': 0.45,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.85, 'fx3.p2': 0.55, 'fx3.mix': 0.45
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.42), m('env1', 'gen1.level', 0.26),
+        m('lfo1', 'gen0.morph', 0.35), m('lfo2', 'flt.cut', 0.22), m('lfo2', 'gen1.morph', 0.2)
+      ]
+    },
+    {
+      name: '混沌铅音', en: 'CHAOS LEAD', tags: ['模拟', '铅音'],
+      params: {
+        'voice.unison': 2, 'voice.detune': 16, 'voice.poly': 1, 'voice.glide': 60,
+        'gen0.type': 0, 'gen0.wave': 2, 'gen0.pwm': 0.4, 'gen0.level': 0,
+        'gen0.cut': 5200, 'gen0.ftype': 1, 'gen0.res': 0.38,
+        'gen1.type': 0, 'gen1.wave': 0, 'gen1.on': 1, 'gen1.level': 0, 'gen1.tune': 12, 'gen1.pan': 0.2,
+        'env0.a': 0.004, 'env0.d': 0.5, 'env0.s': 0.75, 'env0.r': 0.25,
+        'env1.a': 0.01, 'env1.d': 0.4, 'env1.s': 0.6, 'env1.r': 0.4,
+        'lfo0.rate': 5.2, 'lfo0.shape': 0, 'lfo0.amp': 0.5,
+        'chaos.rate': 1.6, 'chaos.smooth': 0.35,
+        'fx0.on': 1, 'fx0.type': 0, 'fx0.p1': 0.3, 'fx0.p2': 0.5, 'fx0.mix': 0.4,
+        'fx2.on': 1, 'fx2.type': 4, 'fx2.p1': 0.3, 'fx2.p2': 0.45, 'fx2.p3': 0.45, 'fx2.mix': 0.28
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.8), m('env1', 'gen1.level', 0.5),
+        m('chaos', 'gen0.pwm', 0.2), m('chaos', 'flt.cut', 0.15),
+        m('lfo1', 'gen0.pan', 0.2), m('lfo1', 'gen1.tune', 0.04)
+      ]
+    },
+    {
+      name: '塑料拨弦', en: 'PLASTIC PLUCK', tags: ['波表', '拨弦'],
+      params: {
+        'voice.poly': 8,
+        'gen0.type': 1, 'gen0.table': 2, 'gen0.morph': 0.25, 'gen0.level': 0,
+        'gen0.cut': 2800, 'gen0.ftype': 1, 'gen0.res': 0.3,
+        'gen1.type': 3, 'gen1.on': 1, 'gen1.level': 0, 'gen1.color': 0.3, 'gen1.pan': 0.2,
+        'env0.a': 0.001, 'env0.d': 0.42, 'env0.s': 0, 'env0.r': 0.3,
+        'env1.a': 0.001, 'env1.d': 0.22, 'env1.s': 0, 'env1.r': 0.2,
+        'env2.a': 0.001, 'env2.d': 0.06, 'env2.s': 0, 'env2.r': 0.06,
+        'fx2.on': 1, 'fx2.type': 4, 'fx2.p1': 0.28, 'fx2.p2': 0.25, 'fx2.p3': 0.4, 'fx2.mix': 0.18,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.45, 'fx3.p2': 0.5, 'fx3.mix': 0.2
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.9), m('env2', 'gen1.level', 0.5),
+        m('env2', 'gen0.cut', 0.4), m('env2', 'gen0.morph', 0.25)
+      ]
+    },
+    {
+      name: '金属打击', en: 'METAL HIT', tags: ['FM', '打击乐'],
+      params: {
+        'voice.poly': 6,
+        'gen0.type': 2, 'gen0.ratio': 7.31, 'gen0.index': 9, 'gen0.fb': 0.2, 'gen0.level': 0,
+        'gen0.tune': 12, 'gen0.pan': -0.2,
+        'gen1.type': 2, 'gen1.on': 1, 'gen1.ratio': 11.7, 'gen1.index': 5, 'gen1.level': 0,
+        'gen1.tune': 19, 'gen1.pan': 0.25,
+        'flt.on': 1, 'flt.type': 3, 'flt.cut': 2600, 'flt.res': 0.3,
+        'env0.a': 0.001, 'env0.d': 0.9, 'env0.s': 0, 'env0.r': 0.8,
+        'env1.a': 0.001, 'env1.d': 0.25, 'env1.s': 0, 'env1.r': 0.2,
+        'fx0.on': 1, 'fx0.type': 1, 'fx0.p1': 0.5, 'fx0.p2': 0.35, 'fx0.mix': 0.35,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.5, 'fx3.p2': 0.4, 'fx3.mix': 0.4
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.9), m('env1', 'gen1.level', 0.7),
+        m('env2', 'gen0.index', 0.4), m('env2', 'flt.cut', 0.3)
+      ]
+    },
+    {
+      name: '黑暗合唱', en: 'DARK CHOIR', tags: ['波表', '铺底'],
+      params: {
+        'voice.poly': 8, 'voice.unison': 2, 'voice.detune': 9, 'voice.spread': 0.7,
+        'gen0.type': 1, 'gen0.table': 3, 'gen0.morph': 0.25, 'gen0.level': 0,
+        'gen0.cut': 1500, 'gen0.ftype': 1, 'gen0.res': 0.25, 'gen0.tune': -12,
+        'gen1.type': 1, 'gen1.table': 3, 'gen1.morph': 0.55, 'gen1.on': 1, 'gen1.level': 0,
+        'gen1.cut': 1900, 'gen1.ftype': 1, 'gen1.res': 0.2, 'gen1.pan': 0.35,
+        'flt.on': 1, 'flt.type': 1, 'flt.cut': 2300, 'flt.res': 0.2,
+        'env0.a': 0.6, 'env0.d': 2, 'env0.s': 0.8, 'env0.r': 1.8,
+        'env1.a': 1.4, 'env1.d': 2, 'env1.s': 0.85, 'env1.r': 2.4,
+        'lfo0.rate': 0.16, 'lfo0.shape': 0, 'lfo1.rate': 0.21, 'lfo1.shape': 1,
+        'fx1.on': 1, 'fx1.type': 2, 'fx1.p1': 0.1, 'fx1.p2': 0.75, 'fx1.p3': 0.2, 'fx1.mix': 0.5,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.9, 'fx3.p2': 0.62, 'fx3.mix': 0.5
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.65), m('env1', 'gen1.level', 0.5),
+        m('lfo1', 'gen0.morph', 0.2), m('lfo2', 'gen1.morph', 0.25), m('lfo2', 'flt.cut', 0.12)
+      ]
+    },
+    {
+      name: '酸性 303', en: 'ACID 303', tags: ['模拟', '贝斯'],
+      params: {
+        'voice.poly': 1, 'voice.glide': 80, 'voice.unison': 1,
+        'gen0.type': 0, 'gen0.wave': 0, 'gen0.level': 0, 'gen0.tune': -12,
+        'flt.on': 1, 'flt.type': 1, 'flt.cut': 300, 'flt.res': 0.78, 'flt.drive': 0.3,
+        'env0.a': 0.002, 'env0.d': 0.3, 'env0.s': 0.2, 'env0.r': 0.12,
+        'env1.a': 0.001, 'env1.d': 0.19, 'env1.s': 0, 'env1.r': 0.14,
+        'env2.a': 0.001, 'env2.d': 0.35, 'env2.s': 0.1, 'env2.r': 0.2,
+        'fx0.on': 1, 'fx0.type': 0, 'fx0.p1': 0.4, 'fx0.p2': 0.6, 'fx0.mix': 0.45,
+        'fx1.on': 1, 'fx1.type': 4, 'fx1.p1': 0.24, 'fx1.p2': 0.3, 'fx1.p3': 0.35, 'fx1.mix': 0.15
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.95), m('env2', 'flt.cut', 0.42), m('env1', 'flt.cut', 0.12)
+      ]
+    },
+    {
+      name: '噪声上升', en: 'NOISE RISER', tags: ['噪声', '效果'],
+      params: {
+        'voice.poly': 1, 'voice.unison': 3, 'voice.detune': 20, 'voice.spread': 1,
+        'gen0.type': 3, 'gen0.color': 0.55, 'gen0.level': 0, 'gen0.cut': 900,
+        'gen0.ftype': 1, 'gen0.res': 0.45,
+        'env0.a': 3.5, 'env0.d': 1, 'env0.s': 1, 'env0.r': 0.6,
+        'env1.a': 3.2, 'env1.d': 0.6, 'env1.s': 0.1, 'env1.r': 0.5,
+        'lfo0.rate': 0.6, 'lfo0.shape': 0, 'lfo0.amp': 0.4,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.8, 'fx3.p2': 0.5, 'fx3.mix': 0.4
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.85), m('env2', 'gen0.cut', 0.65),
+        m('lfo1', 'gen0.pan', 0.35), m('chaos', 'gen0.color', 0.25)
+      ]
+    },
+    {
+      name: '80s 铜管', en: 'BRASS 80S', tags: ['模拟', '键盘'],
+      params: {
+        'voice.poly': 8, 'voice.unison': 2, 'voice.detune': 8, 'voice.spread': 0.5,
+        'gen0.type': 0, 'gen0.wave': 0, 'gen0.level': 0, 'gen0.cut': 2200, 'gen0.ftype': 1, 'gen0.res': 0.2,
+        'gen1.type': 0, 'gen1.wave': 2, 'gen1.pwm': 0.35, 'gen1.on': 1, 'gen1.level': 0,
+        'gen1.tune': -12, 'gen1.pan': -0.1, 'gen1.cut': 1800, 'gen1.ftype': 1, 'gen1.res': 0.15,
+        'env0.a': 0.05, 'env0.d': 0.8, 'env0.s': 0.75, 'env0.r': 0.4,
+        'env1.a': 0.12, 'env1.d': 0.6, 'env1.s': 0.6, 'env1.r': 0.5,
+        'env2.a': 0.06, 'env2.d': 0.5, 'env2.s': 0.2, 'env2.r': 0.3,
+        'lfo0.rate': 5.6, 'lfo0.shape': 0, 'lfo0.amp': 0.35,
+        'fx1.on': 1, 'fx1.type': 2, 'fx1.p1': 0.15, 'fx1.p2': 0.5, 'fx1.p3': 0.2, 'fx1.mix': 0.3,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.5, 'fx3.p2': 0.5, 'fx3.mix': 0.2
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.75), m('env1', 'gen1.level', 0.6),
+        m('env2', 'flt.cut', 0.3), m('env2', 'gen0.cut', 0.25), m('lfo1', 'gen0.tune', 0.006)
+      ]
+    },
+    {
+      name: '数字雨', en: 'DIGITAL RAIN', tags: ['波表', 'FM', '效果'],
+      params: {
+        'voice.poly': 8, 'voice.unison': 2, 'voice.detune': 18, 'voice.spread': 0.8,
+        'gen0.type': 1, 'gen0.table': 5, 'gen0.morph': 0.5, 'gen0.level': 0,
+        'gen0.cut': 5200, 'gen0.ftype': 1, 'gen0.res': 0.3,
+        'gen1.type': 2, 'gen1.on': 1, 'gen1.ratio': 2.01, 'gen1.index': 2, 'gen1.level': 0,
+        'gen1.tune': 24, 'gen1.pan': 0.3,
+        'env0.a': 0.001, 'env0.d': 0.7, 'env0.s': 0, 'env0.r': 0.6,
+        'env1.a': 0.001, 'env1.d': 0.3, 'env1.s': 0, 'env1.r': 0.25,
+        'env2.a': 0.6, 'env2.d': 2, 'env2.s': 0.3, 'env2.r': 1.5,
+        'lfo0.rate': 0.22, 'lfo0.shape': 6, 'lfo0.amp': 0.5,
+        'fx1.on': 1, 'fx1.type': 1, 'fx1.p1': 0.3, 'fx1.p2': 0.3, 'fx1.mix': 0.2,
+        'fx2.on': 1, 'fx2.type': 4, 'fx2.p1': 0.3, 'fx2.p2': 0.5, 'fx2.p3': 0.4, 'fx2.mix': 0.28,
+        'fx3.on': 1, 'fx3.type': 5, 'fx3.p1': 0.75, 'fx3.p2': 0.45, 'fx3.mix': 0.35
+      },
+      mods: [
+        m('env1', 'gen0.level', 0.85), m('env2', 'gen1.level', 0.5),
+        m('lfo1', 'gen0.cut', 0.3), m('env2', 'gen1.index', 0.35), m('lfo1', 'gen0.morph', 0.3)
+      ]
+    }
+  ];
+
+  /* 单个音色的响度配平（引擎级总增益） */
+  var MIX = {
+    '初始化': 0.9, 'DX 玻璃钟': 1.05, 'FM 低音': 0.62, '超锯齿': 1.2,
+    '相位铺底': 1.45, '混沌铅音': 0.66, '塑料拨弦': 0.95, '金属打击': 1.0,
+    '黑暗合唱': 1.5, '酸性 303': 0.9, '噪声上升': 0.85, '80s 铜管': 0.9,
+    '数字雨': 1.35
+  };
+  PRESETS.forEach(function (p) {
+    if (MIX[p.name] !== undefined) p.params['voice.gain'] = MIX[p.name];
+  });
+
+  var LIB = { PRESETS: PRESETS, list: function () { return PRESETS.map(function (p) { return p.name + ' · ' + p.en; }); } };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = LIB;
+  root.PLANT_PRESETS = LIB;
+})(typeof self !== 'undefined' ? self : this);
+</script>
+<script>
+  /* 装了离线缓存：断网也能打开（file:// 打开时自动跳过） */
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', function () {
+      var link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = 'manifest.webmanifest';
+      document.head.appendChild(link);
+      navigator.serviceWorker.register('sw.js').catch(function () { });
+    });
+  }
+</script>
+<script>/* ============================================================================
+ * PLANT-1 界面层：三栏模块化面板、旋钮、拖拽调制、27 键键盘、MIDI
+ * ==========================================================================*/
+(function () {
+  'use strict';
+
+  var engineSrc = document.getElementById('engine-src').textContent;
+  var presetSrc = document.getElementById('presets-src').textContent;
+  new Function(engineSrc)();
+  new Function(presetSrc)();
+  var PLANT = window.PLANT;
+  var PRESETS = window.PLANT_PRESETS.PRESETS;
+  var P = PLANT.PARAMS;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function el(tag, cls, txt) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt !== undefined) e.textContent = txt;
+    return e;
+  }
+
+  var S = {
+    patch: PLANT.defaults(), mods: [], preset: 0, octave: 0,
+    ctx: null, node: null, analyser: null, ready: false, starting: null,
+    pending: {}, raf: 0, hold: false, held: {}, sustained: {}, voices: 0, meter: 0,
+    device: null,
+    meterBar: null
+  };
+  S.patch.mods = S.mods;
+
+  var KNOBS = {}, SELECTS = {}, REFRESH = [];
+
+  /* ------------------------------------------------------------ 数值格式 */
+  function fmtVal(id) {
+    var d = P[id], v = S.patch[id];
+    if (d.kind === 'enum') return (d.values && d.values[v]) || '';
+    if (d.unit === 'Hz') return v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'k' : Math.round(v);
+    if (d.unit === 's') return v < 1 ? Math.round(v * 1000) + 'ms' : v.toFixed(2) + 's';
+    if (d.unit === '¢') return Math.round(v) + '¢';
+    if (d.unit === 'st') return (v > 0 ? '+' : '') + v.toFixed(1);
+    if (d.kind === 'int') return String(Math.round(v));
+    if (d.max - d.min <= 2) return v.toFixed(2);
+    if (d.max <= 1.5) return Math.round(v * 100) + '%';
+    return v.toFixed(1);
+  }
+  function valueFromNorm(d, n) {
+    var v = PLANT.fromNorm(d, clamp(n, 0, 1));
+    if (d.kind === 'int' || d.kind === 'enum') v = Math.round(v);
+    return clamp(v, d.min, d.max);
+  }
+
+  /* ------------------------------------------------------------ 参数写回 */
+  function setParam(id, v, silent) {
+    var d = P[id];
+    if (!d) return;
+    v = (d.kind === 'enum' || d.kind === 'int') ? Math.round(v) : v;
+    v = clamp(v, d.min, d.max);
+    S.patch[id] = v;
+    if (!silent) { queueParam(id, v); saveSoon(); }
+    refreshParam(id);
+  }
+  function queueParam(id, v) {
+    S.pending[id] = v;
+    if (!S.raf) S.raf = requestAnimationFrame(flushParams);
+  }
+  function flushParams() {
+    S.raf = 0;
+    if (!S.node) { S.pending = {}; return; }
+    for (var id in S.pending) post({ type: 'param', id: id, v: S.pending[id] });
+    S.pending = {};
+  }
+  function post(msg) { if (S.node) S.node.port.postMessage(msg); }
+  function sendPatch() {
+    if (!S.node) return;
+    S.patch.mods = S.mods;
+    post({ type: 'patch', patch: S.patch });
+  }
+  function sendMods() {
+    S.patch.mods = S.mods;
+    if (S.node) post({ type: 'mods', mods: S.mods });
+    refreshAllKnobs();
+  }
+
+  /* -------------------------------------------------------------- 音频 */
+  var PROC = [
+    'class PlantProcessor extends AudioWorkletProcessor {',
+    '  constructor() {',
+    '    super();',
+    '    this.e = new PLANT.Engine(sampleRate);',
+    '    this.n = 0;',
+    '    this.port.onmessage = (ev) => {',
+    '      const m = ev.data;',
+    '      try {',
+    '        if (m.type === "patch") this.e.setPatch(m.patch);',
+    '        else if (m.type === "param") this.e.setParam(m.id, m.v);',
+    '        else if (m.type === "mods") this.e.setMods(m.mods);',
+    '        else if (m.type === "note") { if (m.on) this.e.noteOn(m.midi, m.vel); else this.e.noteOff(m.midi); }',
+    '        else if (m.type === "bend") this.e.setBend(m.v);',
+    '        else if (m.type === "mw") this.e.setModWheel(m.v);',
+    '        else if (m.type === "at") this.e.setAftertouch(m.v);',
+    '        else if (m.type === "panic") this.e.allOff();',
+    '      } catch (err) { }',
+    '    };',
+    '  }',
+    '  process(inputs, outputs) {',
+    '    const out = outputs[0];',
+    '    if (out && out.length) {',
+    '      try { this.e.process(out[0], out[1] || out[0], out[0].length); }',
+    '      catch (err) { for (let c = 0; c < out.length; c++) out[c].fill(0); }',
+    '    }',
+    '    if ((this.n++ & 7) === 0) this.port.postMessage({ type: "stat", voices: this.e.activeVoices || 0, meter: this.e.meter || 0 });',
+    '    return true;',
+    '  }',
+    '}',
+    'registerProcessor("plant1", PlantProcessor);'
+  ].join('\n');
+
+  function applyMsg(eng, m) {
+    try {
+      if (m.type === 'patch') eng.setPatch(m.patch);
+      else if (m.type === 'param') eng.setParam(m.id, m.v);
+      else if (m.type === 'mods') eng.setMods(m.mods);
+      else if (m.type === 'note') { if (m.on) eng.noteOn(m.midi, m.vel); else eng.noteOff(m.midi); }
+      else if (m.type === 'bend') eng.setBend(m.v);
+      else if (m.type === 'mw') eng.setModWheel(m.v);
+      else if (m.type === 'at') eng.setAftertouch(m.v);
+      else if (m.type === 'panic') eng.allOff();
+    } catch (err) { }
+  }
+
+  /* file:// 下浏览器禁止 blob 加载 AudioWorklet，退回复用同一引擎的 ScriptProcessor */
+  function makeLocalNode(ctx) {
+    var sp = ctx.createScriptProcessor(512, 0, 2);
+    var eng = new PLANT.Engine(ctx.sampleRate);
+    var api = {
+      local: true,
+      port: { postMessage: function (m) { applyMsg(eng, m); } },
+      connect: function (dst) { sp.connect(dst); },
+      disconnect: function () { sp.disconnect(); }
+    };
+    sp.onaudioprocess = function (e) {
+      var L = e.outputBuffer.getChannelData(0);
+      var R = e.outputBuffer.getChannelData(1);
+      try { eng.process(L, R, L.length); } catch (err) { L.fill(0); R.fill(0); }
+      S.voices = eng.activeVoices || 0;
+      S.meter = eng.meter || 0;
+    };
+    return api;
+  }
+
+  function ensureAudio() {
+    if (S.ctx) { if (S.ctx.state === 'suspended') S.ctx.resume(); return S.starting || Promise.resolve(); }
+    if (S.starting) return S.starting;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { toast('这个浏览器不支持 Web Audio'); return Promise.resolve(); }
+    S.starting = (async function () {
+      var ctx = new AC({ latencyHint: 'interactive' });
+      var node = null;
+      if (ctx.audioWorklet && location.protocol !== 'file:') {
+        try {
+          var url = URL.createObjectURL(new Blob([engineSrc + '\n' + PROC], { type: 'text/javascript' }));
+          await ctx.audioWorklet.addModule(url);
+          URL.revokeObjectURL(url);
+          node = new AudioWorkletNode(ctx, 'plant1', {
+            numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2]
+          });
+          node.port.onmessage = function (ev) {
+            var m = ev.data;
+            if (m.type === 'stat') { S.voices = m.voices; S.meter = m.meter; }
+          };
+        } catch (err) { node = null; }
+      }
+      if (!node) node = makeLocalNode(ctx);
+      var an = ctx.createAnalyser();
+      an.fftSize = 1024;
+      an.smoothingTimeConstant = 0.25;
+      node.connect(an);
+      an.connect(ctx.destination);
+      S.ctx = ctx; S.node = node; S.analyser = an; S.ready = true;
+      sendPatch();
+      for (var m2 in S.held) post({ type: 'note', on: 1, midi: +m2, vel: 0.85 });
+      if (ctx.state === 'suspended') ctx.resume();
+    })();
+    return S.starting;
+  }
+
+  /* -------------------------------------------------------------- 提示 */
+  var toastT = 0;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { t.classList.remove('show'); }, 1600);
+  }
+
+  /* -------------------------------------------------------------- 旋钮 */
+  var ARC0 = -135, ARC1 = 135;
+  function arcPath(c, cx, cy, r, a0, a1) {
+    c.beginPath();
+    c.arc(cx, cy, r, (a0 - 90) * Math.PI / 180, (a1 - 90) * Math.PI / 180, false);
+    c.stroke();
+  }
+  var SRC_COL = { env1: '#a78bfa', env2: '#a78bfa', env3: '#a78bfa', lfo1: '#c084fc', lfo2: '#c084fc', chaos: '#f472b6', macro: '#fbbf24', vel: '#38bdf8', key: '#38bdf8', mw: '#38bdf8', at: '#38bdf8', rnd: '#f472b6' };
+
+  function makeKnob(host, id, opts) {
+    opts = opts || {};
+    var d = P[id];
+    var wrap = el('div', 'knob');
+    wrap.dataset.param = id;
+    var cv = el('canvas', 'kcanvas');
+    cv.width = 80; cv.height = 80;
+    var lb = el('div', 'klabel', opts.label || d.label);
+    var vv = el('div', 'kval');
+    wrap.appendChild(cv); wrap.appendChild(lb); wrap.appendChild(vv);
+    host.appendChild(wrap);
+    var g = cv.getContext('2d');
+    var color = opts.color || '#38bdf8';
+
+    var inst = { el: wrap, id: id };
+    inst.update = function () {
+      if (!cv.isConnected) return;
+      var v = S.patch[id];
+      var n = PLANT.toNorm(d, v);
+      var list = S.mods.filter(function (m) { return m.target === id; });
+      g.clearRect(0, 0, 80, 80);
+      g.lineCap = 'round';
+      g.strokeStyle = '#1b2634'; g.lineWidth = 6;
+      arcPath(g, 40, 40, 29, ARC0, ARC1);
+      list.forEach(function (m, i) {
+        var col = SRC_COL[m.src] || '#a78bfa';
+        var a0 = ARC0 + 270 * n;
+        var a1 = ARC0 + 270 * clamp(n + m.amt, 0, 1);
+        g.strokeStyle = col; g.globalAlpha = 0.85; g.lineWidth = 3;
+        arcPath(g, 40, 40, 21 + i * 4, Math.min(a0, a1), Math.max(a0, a1));
+        g.globalAlpha = 1;
+      });
+      g.strokeStyle = color;
+      g.lineWidth = 6;
+      if (n > 0.004) arcPath(g, 40, 40, 29, ARC0, ARC0 + 270 * n);
+      g.fillStyle = '#0b1119';
+      g.beginPath(); g.arc(40, 40, 18, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#243141'; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(40, 40, 18, 0, Math.PI * 2); g.stroke();
+      var ang = (ARC0 + 270 * n - 90) * Math.PI / 180;
+      g.strokeStyle = '#dce7f4'; g.lineWidth = 2.4; g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(40 + Math.cos(ang) * 6, 40 + Math.sin(ang) * 6);
+      g.lineTo(40 + Math.cos(ang) * 15, 40 + Math.sin(ang) * 15);
+      g.stroke();
+      vv.textContent = fmtVal(id);
+      wrap.classList.toggle('hasmode', list.length > 0);
+    };
+
+    var drag = null;
+    wrap.addEventListener('pointerdown', function (e) {
+      if (e.button === 2) return;
+      e.preventDefault();
+      wrap.setPointerCapture(e.pointerId);
+      var mod = S.mods.find(function (m) { return m.target === id; });
+      drag = {
+        x: e.clientX, y: e.clientY,
+        n: PLANT.toNorm(d, S.patch[id]),
+        mod: (e.altKey && mod) ? mod : null,
+        m0: mod ? mod.amt : 0
+      };
+      wrap.classList.add('active');
+    });
+    wrap.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var dy = drag.y - e.clientY, dx = e.clientX - drag.x;
+      var delta = (dy + dx * 0.45) * (e.shiftKey ? 0.2 : 1) / 165;
+      if (drag.mod) {
+        drag.mod.amt = clamp(drag.m0 + delta * 2, -1, 1);
+        sendMods();
+        renderMatrix();
+      } else {
+        setParam(id, valueFromNorm(d, drag.n + delta));
+      }
+    });
+    wrap.addEventListener('pointerup', function (e) {
+      if (!drag) return;
+      drag = null;
+      wrap.classList.remove('active');
+      try { wrap.releasePointerCapture(e.pointerId); } catch (err) { }
+      saveSoon();
+    });
+    wrap.addEventListener('dblclick', function () {
+      setParam(id, d.def);
+      toast(d.label + ' 已复位');
+    });
+    wrap.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+      var had = S.mods.some(function (m) { return m.target === id; });
+      if (!had) return;
+      S.mods = S.mods.filter(function (m) { return m.target !== id; });
+      sendMods(); renderMatrix();
+      toast('已清除 ' + d.label + ' 的调制');
+    });
+
+    inst.update();
+    (KNOBS[id] = KNOBS[id] || []).push(inst);
+    return inst;
+  }
+
+  function refreshParam(id) {
+    var list = KNOBS[id];
+    if (list) for (var i = 0; i < list.length; i++) list[i].update();
+    var sels = SELECTS[id];
+    if (sels) for (var j = 0; j < sels.length; j++) sels[j].value = String(S.patch[id]);
+    for (var k = 0; k < REFRESH.length; k++) REFRESH[k](id);
+  }
+  function pruneControls() {
+    for (var id in KNOBS) {
+      KNOBS[id] = KNOBS[id].filter(function (k) { return k.el.isConnected; });
+      if (!KNOBS[id].length) delete KNOBS[id];
+    }
+    for (var s in SELECTS) {
+      SELECTS[s] = SELECTS[s].filter(function (e) { return e.isConnected; });
+      if (!SELECTS[s].length) delete SELECTS[s];
+    }
+  }
+  function refreshAllKnobs() {
+    pruneControls();
+    for (var id in KNOBS) for (var i = 0; i < KNOBS[id].length; i++) KNOBS[id][i].update();
+    for (var s in SELECTS) for (var j = 0; j < SELECTS[s].length; j++) SELECTS[s][j].value = String(S.patch[s]);
+    for (var k = 0; k < REFRESH.length; k++) REFRESH[k](null);
+  }
+
+  /* 载入新音色后，发生器/效果器的旋钮组要按新类型重建 */
+  function applyPatchUI() {
+    buildGens();
+    buildFx();
+    refreshAllKnobs();
+    renderMatrix();
+    updatePresetLabel();
+  }
+
+  function makeSelect(host, id, opts) {
+    opts = opts || {};
+    var d = P[id];
+    var sel = el('select', 'sel');
+    (d.values || []).forEach(function (v, i) {
+      var o = el('option', null, v);
+      o.value = String(i);
+      sel.appendChild(o);
+    });
+    sel.value = String(S.patch[id]);
+    sel.addEventListener('change', function () {
+      setParam(id, +sel.value);
+      if (opts.onChange) opts.onChange(+sel.value);
+    });
+    host.appendChild(sel);
+    (SELECTS[id] = SELECTS[id] || []).push(sel);
+    return sel;
+  }
+
+  function makePower(host, id, after) {
+    var btn = el('button', 'pwr', '\u25CF');
+    btn.title = '开关';
+    function sync() { btn.classList.toggle('on', !!Math.round(S.patch[id])); }
+    btn.addEventListener('click', function () {
+      setParam(id, Math.round(S.patch[id]) ? 0 : 1);
+      sync();
+      if (after) after();
+    });
+    sync();
+    host.appendChild(btn);
+    REFRESH.push(function () { if (btn.isConnected) sync(); });
+    return btn;
+  }
+
+  /* ------------------------------------------------------------ 预置/状态 */
+  function updatePresetLabel() {
+    var p = PRESETS[S.preset] || { name: '用户音色', en: 'USER' };
+    $('presetName').textContent = p.name;
+    $('presetEn').textContent = p.en;
+    $('sPreset').textContent = p.en;
+    var list = $('presetList').children;
+    for (var i = 0; i < list.length; i++) list[i].classList.toggle('cur', i === S.preset);
+  }
+
+  function loadPreset(i, silent) {
+    S.preset = ((i % PRESETS.length) + PRESETS.length) % PRESETS.length;
+    var p = PRESETS[S.preset];
+    var patch = PLANT.defaults();
+    for (var k in p.params) patch[k] = p.params[k];
+    S.patch = patch;
+    S.mods = (p.mods || []).map(function (m) { return { src: m.src, target: m.target, amt: m.amt }; });
+    S.patch.mods = S.mods;
+    updatePresetLabel();
+    applyPatchUI();
+    sendPatch();
+    if (!silent) saveSoon();
+  }
+
+  var saveT = 0;
+  function saveSoon() {
+    clearTimeout(saveT);
+    saveT = setTimeout(function () {
+      try {
+        localStorage.setItem('plant1.patch', JSON.stringify({ params: S.patch, mods: S.mods }));
+      } catch (e) { }
+    }, 500);
+  }
+  function loadLocal() {
+    try {
+      var raw = localStorage.getItem('plant1.patch');
+      if (!raw) return false;
+      var o = JSON.parse(raw);
+      if (!o || !o.params) return false;
+      S.patch = Object.assign(PLANT.defaults(), o.params);
+      S.mods = o.mods || [];
+      S.patch.mods = S.mods;
+      S.preset = -1;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* -------------------------------------------------------------- 面板 */
+  function panel(title, cls) {
+    var p = el('div', 'panel ' + (cls || ''));
+    var h = el('h3');
+    h.appendChild(el('span', 'dot'));
+    h.appendChild(document.createTextNode(title));
+    p.appendChild(h);
+    return p;
+  }
+
+  /* --- VOICE --- */
+  function buildVoice() {
+    var host = $('colVoice');
+    host.innerHTML = '';
+    var p = panel('VOICE · 声部');
+    var row = el('div', 'knobrow');
+    makeKnob(row, 'voice.poly', { color: '#38bdf8' });
+    makeKnob(row, 'voice.unison', { color: '#38bdf8' });
+    makeKnob(row, 'voice.detune', { color: '#38bdf8' });
+    makeKnob(row, 'voice.spread', { color: '#38bdf8' });
+    makeKnob(row, 'voice.glide', { color: '#38bdf8' });
+    makeKnob(row, 'voice.bend', { color: '#38bdf8' });
+    makeKnob(row, 'voice.gain', { color: '#4ade80', label: '音量' });
+    makeKnob(row, 'tempo', { color: '#4ade80' });
+    p.appendChild(row);
+    var info = el('div', 'mempty');
+    info.style.cssText = 'padding:2px 2px 0;font-size:8px;color:#4d5a6b;letter-spacing:.05em';
+    info.innerHTML = '固件 v' + PLANT.version + ' · FM1-OPEN 应用层';
+    p.appendChild(info);
+    host.appendChild(p);
+  }
+
+  /* --- 全局滤波 --- */
+  function buildFilter() {
+    var p = panel('FILTER · 滤波');
+    var h = p.querySelector('h3');
+    var pw = makePower(h, 'flt.on');
+    pw.style.marginLeft = 'auto';
+    var selWrap = el('div');
+    selWrap.style.cssText = 'width:76px;flex:0 0 auto';
+    makeSelect(selWrap, 'flt.type');
+    selWrap.querySelector('select').style.fontSize = '9px';
+    h.appendChild(selWrap);
+    var row = el('div', 'knobrow');
+    makeKnob(row, 'flt.cut', { color: '#22d3ee' });
+    makeKnob(row, 'flt.res', { color: '#22d3ee' });
+    makeKnob(row, 'flt.drive', { color: '#22d3ee' });
+    p.appendChild(row);
+    $('colVoice').appendChild(p);
+  }
+
+  /* --- 发生器 --- */
+  var GEN_KNOBS = {
+    0: ['level', 'pan', 'tune', 'pwm', 'cut', 'res'],
+    1: ['level', 'pan', 'tune', 'morph', 'cut', 'res'],
+    2: ['level', 'pan', 'tune', 'ratio', 'index', 'fb', 'cut', 'res'],
+    3: ['level', 'pan', 'tune', 'color', 'cut', 'res']
+  };
+  var GEN_EXTRA_SELECT = { 0: 'wave', 1: 'table', 2: null, 3: null };
+  var GEN_LABEL = {
+    level: '电平', pan: '声像', tune: '音高', pwm: '脉宽', cut: '截止', res: '共振',
+    morph: '形变', ratio: '比率', index: '指数', fb: '反馈', color: '色温', wave: '波形', table: '波表'
+  };
+
+  function drawGenPreview(cv, g) {
+    if (!cv.isConnected) return;
+    var dpr = window.devicePixelRatio || 1;
+    var w = Math.max(40, cv.clientWidth || 74);
+    var h = Math.max(30, cv.clientHeight || 44);
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+    }
+    var c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+
+    c.strokeStyle = '#0f1b25'; c.lineWidth = 1;
+    for (var k = 1; k < 4; k++) {
+      var gy = h * k / 4;
+      c.beginPath(); c.moveTo(0, gy); c.lineTo(w, gy); c.stroke();
+    }
+
+    var on = Math.round(S.patch['gen' + g + '.on']);
+    if (!on) {
+      c.strokeStyle = '#16232f'; c.lineWidth = 1.3; c.setLineDash([3, 5]);
+      c.beginPath(); c.moveTo(0, h / 2); c.lineTo(w, h / 2); c.stroke();
+      c.setLineDash([]);
+      c.font = '600 10px ui-monospace, monospace';
+      c.fillStyle = '#1d2f40';
+      c.textAlign = 'right';
+      c.fillText('OFF', w - 8, h / 2 - 6);
+      return;
+    }
+
+    var type = Math.round(S.patch['gen' + g + '.type']);
+    var N = Math.max(140, Math.round(w * 1.4));
+    var cycles = 2;
+    var amp = h * 0.40;
+    var pts = new Array(N + 1);
+    var i, t, ph, v;
+    for (i = 0; i <= N; i++) {
+      t = i / N * cycles;
+      ph = t % 1;
+      v = 0;
+      if (type === 0) {
+        var wv = Math.round(S.patch['gen' + g + '.wave']);
+        var pw = S.patch['gen' + g + '.pwm'];
+        if (wv === 0) v = 2 * ph - 1;
+        else if (wv === 1) v = ph < 0.5 ? 1 : -1;
+        else if (wv === 2) v = ph < pw ? 1 : -1;
+        else v = Math.sin(ph * Math.PI * 2);
+      } else if (type === 1) {
+        var mo = S.patch['gen' + g + '.morph'];
+        v = Math.sin(ph * Math.PI * 2) * (1 - mo) + (2 * ph - 1) * mo;
+      } else if (type === 2) {
+        var idx = S.patch['gen' + g + '.index'];
+        var ratio = S.patch['gen' + g + '.ratio'];
+        v = Math.sin(ph * Math.PI * 2 + idx * Math.sin(ph * Math.PI * 2 * ratio)) * 0.85;
+      } else {
+        var seed = (i * 2654435761) % 4294967296 / 4294967296;
+        v = (seed * 2 - 1) * 0.7 + (i % 2 ? 0.12 : -0.12);
+      }
+      pts[i] = { x: i / N * w, y: h / 2 - v * amp };
+    }
+
+    var grd = c.createLinearGradient(0, h / 2 - amp, 0, h / 2 + amp);
+    grd.addColorStop(0, 'rgba(56,189,248,.26)');
+    grd.addColorStop(1, 'rgba(56,189,248,.02)');
+    c.beginPath();
+    c.moveTo(0, h / 2);
+    for (i = 0; i <= N; i++) c.lineTo(pts[i].x, pts[i].y);
+    c.lineTo(w, h / 2);
+    c.closePath();
+    c.fillStyle = grd;
+    c.fill();
+
+    c.beginPath();
+    for (i = 0; i <= N; i++) {
+      if (i === 0) c.moveTo(pts[i].x, pts[i].y); else c.lineTo(pts[i].x, pts[i].y);
+    }
+    c.strokeStyle = '#38bdf8';
+    c.lineWidth = 1.5;
+    c.lineJoin = 'round';
+    c.stroke();
+  }
+
+  function genIds(g) {
+    return ['on', 'type', 'level', 'pan', 'tune', 'cut', 'res', 'ftype', 'wave', 'pwm', 'table', 'morph', 'ratio', 'index', 'fb', 'color']
+      .map(function (k) { return 'gen' + g + '.' + k; });
+  }
+
+  function buildGens() {
+    var host = $('colGens');
+    host.innerHTML = '';
+    for (var g = 0; g < 4; g++) buildGen(g, host);
+    REFRESH.push(function (id) {
+      if (!id || id.indexOf('gen') === 0) {
+        for (var i = 0; i < 4; i++) {
+          var card = host.children[i];
+          if (!card) continue;
+          card.classList.toggle('off', !Math.round(S.patch['gen' + i + '.on']));
+          var pv = card.querySelector('.gen-prev');
+          if (pv) drawGenPreview(pv, i);
+        }
+      }
+    });
+  }
+
+  function buildGen(g, host) {
+    var ids = genIds(g);
+    for (var i = 0; i < ids.length; i++) { delete KNOBS[ids[i]]; delete SELECTS[ids[i]]; }
+
+    var card = el('div', 'gen' + (Math.round(S.patch['gen' + g + '.on']) ? '' : ' off'));
+    var head = el('div', 'gen-h');
+    head.appendChild(el('span', 'tag', 'G' + (g + 1)));
+    var typeSel = el('select', 'sel');
+    PLANT.GEN_TYPES.forEach(function (name, i) {
+      var o = el('option', null, 'G' + (g + 1) + ' · ' + name + ' / ' + PLANT.GEN_TYPES_EN[i]);
+      o.value = String(i);
+      typeSel.appendChild(o);
+    });
+    typeSel.value = String(Math.round(S.patch['gen' + g + '.type']));
+    typeSel.addEventListener('change', function () {
+      setParam('gen' + g + '.type', +typeSel.value);
+      rebuildGenCard(g);
+    });
+    head.appendChild(typeSel);
+    makePower(head, 'gen' + g + '.on', function () { rebuildGenCard(g); });
+    card.appendChild(head);
+
+    var body = el('div', 'gen-body');
+    var pv = el('canvas', 'gen-prev');
+    body.appendChild(pv);
+    var knobs = el('div', 'gen-knobs');
+    body.appendChild(knobs);
+    card.appendChild(body);
+
+    var foot = el('div', 'gen-foot');
+    var extra = GEN_EXTRA_SELECT[Math.round(S.patch['gen' + g + '.type'])];
+    if (extra) {
+      foot.appendChild(el('span', 'lbl', extra === 'wave' ? 'WAVE' : 'TABLE'));
+      var extraWrap = el('div');
+      extraWrap.style.cssText = 'width:86px';
+      makeSelect(extraWrap, 'gen' + g + '.' + extra, {
+        onChange: function () { rebuildGenCard(g); }
+      });
+      foot.appendChild(extraWrap);
+    }
+    foot.appendChild(el('span', 'lbl', 'FILTER'));
+    var fsel = el('select', 'sel');
+    PLANT.FTYPES.forEach(function (name, idx) {
+      var o = el('option', null, name + ' / ' + PLANT.FTYPES_EN[idx]);
+      o.value = String(idx);
+      fsel.appendChild(o);
+    });
+    fsel.value = String(Math.round(S.patch['gen' + g + '.ftype']));
+    fsel.addEventListener('change', function () { setParam('gen' + g + '.ftype', +fsel.value); });
+    foot.appendChild(fsel);
+    card.appendChild(foot);
+
+    host.appendChild(card);
+
+    var type = Math.round(S.patch['gen' + g + '.type']);
+    GEN_KNOBS[type].forEach(function (k2) {
+      makeKnob(knobs, 'gen' + g + '.' + k2, { label: GEN_LABEL[k2] || k2 });
+    });
+    requestAnimationFrame(function () { drawGenPreview(pv, g); });
+  }
+
+  function rebuildGenCard(g) {
+    var host = $('colGens');
+    var old = host.children[g];
+    if (!old) return;
+    var frag = document.createDocumentFragment();
+    buildGen(g, frag);
+    host.replaceChild(frag.firstChild, old);
+  }
+
+  /* --- 调制器 --- */
+  function envLayout(e, W, H) {
+    var pad = 5;
+    var a = S.patch['env' + e + '.a'], d = S.patch['env' + e + '.d'];
+    var r = S.patch['env' + e + '.r'], s = S.patch['env' + e + '.s'];
+    var usable = W - pad * 2;
+    var total = Math.max(0.02, a + d + r + 0.1);
+    var wa = Math.max(7, usable * a / total);
+    var wd = Math.max(7, usable * d / total);
+    var ws = usable * 0.16;
+    var wr = Math.max(7, usable * r / total);
+    var k = usable / (wa + wd + ws + wr);
+    wa *= k; wd *= k; ws *= k; wr *= k;
+    var x0 = pad + 1, x1 = x0 + wa, x2 = x1 + wd, x3 = x2 + ws, x4 = x3 + wr;
+    var y0 = pad + 2, yb = H - pad, yS = pad + (H - pad * 2 - 2) * (1 - s);
+    return { x0: x0, x1: x1, x2: x2, x3: x3, x4: x4, y0: y0, yS: yS, yb: yb };
+  }
+
+  function drawEnv(cv, e) {
+    if (!cv.isConnected) return;
+    var w = cv.clientWidth || 280, h = cv.clientHeight || 30;
+    var dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    }
+    var c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    var L = envLayout(e, w, h);
+    c.strokeStyle = '#241a3d'; c.lineWidth = 1;
+    for (var i = 1; i < 4; i++) {
+      var x = L.x0 + (L.x4 - L.x0) * i / 4;
+      c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
+    }
+    c.beginPath();
+    c.moveTo(L.x0, L.yb);
+    c.lineTo(L.x1, L.y0);
+    c.lineTo(L.x2, L.yS);
+    c.lineTo(L.x3, L.yS);
+    c.lineTo(L.x4, L.yb);
+    c.strokeStyle = '#a78bfa'; c.lineWidth = 1.8; c.lineJoin = 'round'; c.stroke();
+    var grd = c.createLinearGradient(0, L.y0, 0, L.yb);
+    grd.addColorStop(0, 'rgba(167,139,250,.30)');
+    grd.addColorStop(1, 'rgba(167,139,250,.02)');
+    c.lineTo(L.x4, L.yb); c.lineTo(L.x0, L.yb); c.closePath();
+    c.fillStyle = grd; c.fill();
+    [[L.x1, L.y0], [L.x2, L.yS], [L.x3, L.yS]].forEach(function (pt) {
+      c.beginPath(); c.arc(pt[0], pt[1], 3.2, 0, Math.PI * 2);
+      c.fillStyle = '#c4b5fd'; c.fill();
+    });
+  }
+
+  function bindEnvDrag(cv, e) {
+    var drag = null;
+    cv.addEventListener('pointerdown', function (ev) {
+      var r = cv.getBoundingClientRect();
+      var x = ev.clientX - r.left, y = ev.clientY - r.top;
+      var L = envLayout(e, r.width, r.height);
+      var cands = [
+        { t: 'a', x: L.x1, y: L.y0 }, { t: 'ds', x: L.x2, y: L.yS }, { t: 'r', x: L.x3, y: L.yS }
+      ];
+      var best = null, bd = 24;
+      cands.forEach(function (c) {
+        var dd = Math.sqrt((c.x - x) * (c.x - x) + (c.y - y) * (c.y - y));
+        if (dd < bd) { bd = dd; best = c; }
+      });
+      if (!best) return;
+      ev.preventDefault();
+      cv.setPointerCapture(ev.pointerId);
+      drag = {
+        t: best.t, x0: x, y0: y,
+        a: S.patch['env' + e + '.a'], d: S.patch['env' + e + '.d'],
+        r: S.patch['env' + e + '.r'], s: S.patch['env' + e + '.s']
+      };
+    });
+    cv.addEventListener('pointermove', function (ev) {
+      if (!drag) return;
+      var r = cv.getBoundingClientRect();
+      var dx = ev.clientX - r.left - drag.x0;
+      var dy = ev.clientY - r.top - drag.y0;
+      var k = Math.exp(dx / 55);
+      if (drag.t === 'a') setParam('env' + e + '.a', clamp(drag.a * k, 0.001, 8));
+      else if (drag.t === 'r') setParam('env' + e + '.r', clamp(drag.r * k, 0.002, 10));
+      else if (drag.t === 'ds') {
+        setParam('env' + e + '.d', clamp(drag.d * k, 0.002, 8));
+        setParam('env' + e + '.s', clamp(drag.s - dy / (r.height - 8), 0, 1));
+      }
+    });
+    cv.addEventListener('pointerup', function (ev) {
+      drag = null;
+      try { cv.releasePointerCapture(ev.pointerId); } catch (err) { }
+    });
+  }
+
+  function buildEnv(e, host) {
+    var card = el('div', 'mod');
+    var h = el('div', 'mod-h');
+    var tag = el('span', 'tag', 'ENV' + (e + 1));
+    tag.title = '拖到旋钮上建立调制';
+    bindModDrag(tag, 'env' + (e + 1));
+    h.appendChild(tag);
+    h.appendChild(el('span', 'nm', ['包络 1', '包络 2', '包络 3'][e]));
+    card.appendChild(h);
+    var cv = el('canvas', 'ed');
+    cv.style.height = '30px';
+    card.appendChild(cv);
+    var row = el('div', 'knobrow');
+    ['a', 'd', 's', 'r'].forEach(function (k) {
+      makeKnob(row, 'env' + e + '.' + k, { color: '#a78bfa', label: { a: '起音', d: '衰减', s: '延持', r: '释放' }[k] });
+    });
+    card.appendChild(row);
+    host.appendChild(card);
+    bindEnvDrag(cv, e);
+    REFRESH.push(function (id) {
+      if (!id || id.indexOf('env' + e + '.') === 0) drawEnv(cv, e);
+    });
+    requestAnimationFrame(function () { drawEnv(cv, e); });
+  }
+
+  var lfoPhase = [0, 0];
+  function lfoRate(l) {
+    var beat = 60 / S.patch['tempo'];
+    var divs = [32, 16, 8, 2, 1, 0.5, 0.25, 0.125];
+    return Math.round(S.patch['lfo' + l + '.sync']) ? 1 / (beat * divs[Math.round(S.patch['lfo' + l + '.div'])]) : S.patch['lfo' + l + '.rate'];
+  }
+  function lfoShape(l, ph) {
+    var s = Math.round(S.patch['lfo' + l + '.shape']);
+    switch (s) {
+      case 0: return Math.sin(ph * Math.PI * 2);
+      case 1: return 1 - 4 * Math.abs(ph - 0.5);
+      case 2: return ph * 2 - 1;
+      case 3: return 1 - ph * 2;
+      case 4: return ph < 0.5 ? 1 : -1;
+      case 5: return Math.sin(ph * 12.9898) * 0.9;
+      default: return Math.sin(ph * Math.PI * 4) * 0.6;
+    }
+  }
+  function drawLfo(cv, l) {
+    if (!cv.isConnected) return;
+    var w = cv.clientWidth || 280, h = cv.clientHeight || 30;
+    var dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    }
+    var c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    c.strokeStyle = '#241a3d'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, h / 2); c.lineTo(w, h / 2); c.stroke();
+    var col = Math.round(S.patch['lfo' + l + '.uni']) ? '#c084fc' : '#a78bfa';
+    var N = 120;
+    c.beginPath();
+    for (var i = 0; i <= N; i++) {
+      var ph = (i / N + lfoPhase[l]) % 1;
+      var v = lfoShape(l, ph) * 0.86;
+      var y = h / 2 - v * (h / 2 - 3);
+      var x = i / N * w;
+      if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.strokeStyle = col; c.lineWidth = 1.5; c.stroke();
+    var vNow = lfoShape(l, lfoPhase[l]) * 0.86;
+    c.beginPath(); c.arc(2, h / 2 - vNow * (h / 2 - 3), 2.6, 0, Math.PI * 2);
+    c.fillStyle = '#e9d5ff'; c.fill();
+  }
+
+  function buildLfo(l, host) {
+    var card = el('div', 'mod');
+    var h = el('div', 'mod-h');
+    var tag = el('span', 'tag', 'LFO' + (l + 1));
+    tag.title = '拖到旋钮上建立调制';
+    bindModDrag(tag, 'lfo' + (l + 1));
+    h.appendChild(tag);
+    h.appendChild(el('span', 'nm', '低频振荡 ' + (l + 1)));
+    card.appendChild(h);
+    var cv = el('canvas', 'ed');
+    cv.style.height = '30px';
+    card.appendChild(cv);
+    (S.lfoCv = S.lfoCv || [])[l] = cv;
+    var row = el('div', 'knobrow');
+    makeKnob(row, 'lfo' + l + '.rate', { color: '#a78bfa', label: '速率' });
+    makeKnob(row, 'lfo' + l + '.amp', { color: '#a78bfa', label: '幅度' });
+    var selWrap = el('div');
+    selWrap.style.cssText = 'width:78px;align-self:center';
+    makeSelect(selWrap, 'lfo' + l + '.shape');
+    row.appendChild(selWrap);
+    card.appendChild(row);
+    var foot = el('div', 'gen-foot');
+    var uniBtn = el('button', 'pwr' + (Math.round(S.patch['lfo' + l + '.uni']) ? ' on' : ''), 'UNI');
+    uniBtn.style.cssText = 'width:auto;height:16px;border-radius:3px;font:7.5px monospace;padding:0 5px';
+    uniBtn.title = '单极输出（0…1，而不是 -1…1）';
+    uniBtn.addEventListener('click', function () {
+      setParam('lfo' + l + '.uni', Math.round(S.patch['lfo' + l + '.uni']) ? 0 : 1);
+      uniBtn.classList.toggle('on', !!Math.round(S.patch['lfo' + l + '.uni']));
+    });
+    foot.appendChild(uniBtn);
+    var sync = el('button', 'pwr' + (Math.round(S.patch['lfo' + l + '.sync']) ? ' on' : ''), 'SYNC');
+    sync.style.cssText = 'width:auto;height:16px;border-radius:3px;font:7.5px monospace;padding:0 5px';
+    sync.addEventListener('click', function () {
+      setParam('lfo' + l + '.sync', Math.round(S.patch['lfo' + l + '.sync']) ? 0 : 1);
+      sync.classList.toggle('on', !!Math.round(S.patch['lfo' + l + '.sync']));
+    });
+    foot.appendChild(sync);
+    var divWrap = el('div');
+    divWrap.style.cssText = 'flex:1;display:flex;align-items:center;gap:4px';
+    divWrap.appendChild(el('span', 'lbl', 'DIV'));
+    makeSelect(divWrap, 'lfo' + l + '.div');
+    foot.appendChild(divWrap);
+    card.appendChild(foot);
+    host.appendChild(card);
+    REFRESH.push(function (id) {
+      if (!id || id.indexOf('lfo' + l + '.') === 0) drawLfo(cv, l);
+    });
+    requestAnimationFrame(function () { drawLfo(cv, l); });
+  }
+
+  function buildMods() {
+    var host = $('colMods');
+    host.innerHTML = '';
+    for (var e = 0; e < 3; e++) buildEnv(e, host);
+    for (var l = 0; l < 2; l++) buildLfo(l, host);
+
+    var others = el('div');
+    others.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px';
+    var ch = el('div', 'mod');
+    var chh = el('div', 'mod-h');
+    var ctag = el('span', 'tag', 'CHAOS');
+    ctag.title = '拖到旋钮上建立调制';
+    bindModDrag(ctag, 'chaos');
+    chh.appendChild(ctag);
+    ch.appendChild(chh);
+    var chr = el('div', 'knobrow');
+    makeKnob(chr, 'chaos.rate', { color: '#f472b6', label: '速率' });
+    makeKnob(chr, 'chaos.smooth', { color: '#f472b6', label: '平滑' });
+    ch.appendChild(chr);
+    others.appendChild(ch);
+
+    var mc = el('div', 'mod');
+    var mh = el('div', 'mod-h');
+    var mtag = el('span', 'tag', 'MACRO');
+    mtag.title = '拖到旋钮上建立调制';
+    bindModDrag(mtag, 'macro');
+    mh.appendChild(mtag);
+    mc.appendChild(mh);
+    var mr = el('div', 'knobrow');
+    makeKnob(mr, 'macro.val', { color: '#fbbf24', label: '宏控' });
+    mc.appendChild(mr);
+    others.appendChild(mc);
+
+    var mp = panel('MOD MATRIX · 调制矩阵', 'mods mat');
+    var chips = el('div', 'srcchips');
+    [['vel', '力度'], ['key', '键位'], ['mw', '调制轮'], ['at', '触后'], ['rnd', '随机']].forEach(function (p) {
+      var t = el('span', 'chip', p[1]);
+      t.title = '拖到旋钮上建立调制';
+      bindModDrag(t, p[0]);
+      chips.appendChild(t);
+    });
+    mp.appendChild(chips);
+    var mbox = el('div', 'matrix');
+    mbox.id = 'matrix';
+    mp.appendChild(mbox);
+    $('colVoice').appendChild(mp);
+    $('colVoice').appendChild(others);
+  }
+
+  function renderMatrix() {
+    var box = $('matrix');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!S.mods.length) {
+      box.appendChild(el('div', 'mempty', '把 ENV / LFO / CHAOS / MACRO 的标签拖到任意旋钮上即可接线。按住 Alt 拖旋钮可调调制深度。'));
+      return;
+    }
+    S.mods.forEach(function (m, idx) {
+      var item = el('div', 'mitem');
+      var row = el('div', 'mrow');
+      var src = el('span', 'src', m.src.toUpperCase());
+      src.style.cssText = 'color:' + (PLANT.SOURCE_COLORS[PLANT.MOD_SOURCES.indexOf(m.src)] || '#a78bfa') + ';background:#1b1430';
+      row.appendChild(src);
+      var tgt = el('span', 'tgt', P[m.target] ? P[m.target].label : m.target);
+      tgt.title = m.target;
+      row.appendChild(tgt);
+      var del = el('button', 'del', '\u00D7');
+      del.title = '删除这条调制';
+      del.addEventListener('click', function () {
+        S.mods.splice(idx, 1);
+        sendMods(); renderMatrix();
+      });
+      row.appendChild(del);
+      item.appendChild(row);
+      var sl = el('div', 'mslider');
+      var rng = el('input');
+      rng.type = 'range';
+      rng.min = -1; rng.max = 1; rng.step = 0.01; rng.value = m.amt;
+      var amt = el('span', 'amt', (m.amt > 0 ? '+' : '') + Math.round(m.amt * 100) + '%');
+      rng.addEventListener('input', function () {
+        m.amt = +rng.value;
+        amt.textContent = (m.amt > 0 ? '+' : '') + Math.round(m.amt * 100) + '%';
+        sendMods();
+      });
+      sl.appendChild(rng);
+      sl.appendChild(amt);
+      item.appendChild(sl);
+      box.appendChild(item);
+    });
+  }
+
+  /* --- 效果 --- */
+  var FX_PARAM_LABELS = {
+    0: ['增益', '音色', ''],
+    1: ['位数', '降采样', ''],
+    2: ['速率', '深度', '反馈'],
+    3: ['速率', '深度', '反馈'],
+    4: ['时间', '反馈', '音色'],
+    5: ['空间', '阻尼', ''],
+    6: ['倾斜', '低频', '高频'],
+    7: ['阈值', '压缩', '释放'],
+    8: ['截止', '共振', ''],
+    9: ['宽度', '中置', '']
+  };
+
+  function buildFx() {
+    var host = $('fxrow');
+    host.innerHTML = '';
+    for (var i = 0; i < 5; i++) buildFxSlot(i, host);
+    buildMaster(host);
+  }
+
+  function buildFxSlot(i, host) {
+    ['on', 'type', 'p1', 'p2', 'p3', 'mix'].forEach(function (k) { delete KNOBS['fx' + i + '.' + k]; delete SELECTS['fx' + i + '.' + k]; });
+    var card = el('div', 'fx' + (Math.round(S.patch['fx' + i + '.on']) ? '' : ' off'));
+    var h = el('div', 'fx-h');
+    h.appendChild(el('span', 'tag', 'FX' + (i + 1)));
+    var sel = el('select', 'sel');
+    PLANT.FX_TYPES.forEach(function (name, t) {
+      var o = el('option', null, name + ' / ' + PLANT.FX_EN[t]);
+      o.value = String(t);
+      sel.appendChild(o);
+    });
+    sel.value = String(Math.round(S.patch['fx' + i + '.type']));
+    sel.addEventListener('change', function () {
+      setParam('fx' + i + '.type', +sel.value);
+      rebuildFxSlot(i);
+    });
+    h.appendChild(sel);
+    makePower(h, 'fx' + i + '.on', function () { rebuildFxSlot(i); });
+    card.appendChild(h);
+
+    var type = Math.round(S.patch['fx' + i + '.type']);
+    var labels = FX_PARAM_LABELS[type] || ['A', 'B', 'C'];
+    var row = el('div', 'knobrow');
+    ['p1', 'p2', 'p3'].forEach(function (k, j) {
+      if (!labels[j]) return;
+      makeKnob(row, 'fx' + i + '.' + k, { color: '#fb923c', label: labels[j] });
+    });
+    makeKnob(row, 'fx' + i + '.mix', { color: '#fb923c', label: '混合' });
+    card.appendChild(row);
+    host.appendChild(card);
+  }
+
+  function rebuildFxSlot(i) {
+    var host = $('fxrow');
+    var old = host.children[i];
+    if (!old) return;
+    var frag = document.createDocumentFragment();
+    buildFxSlot(i, frag);
+    host.replaceChild(frag.firstChild, old);
+  }
+
+  function buildMaster(host) {
+    var card = el('div', 'fx master');
+    var h = el('div', 'fx-h');
+    h.appendChild(el('span', 'tag', 'OUT'));
+    h.appendChild(el('span', 'lbl', '主输出'));
+    card.appendChild(h);
+    var info = el('div', 'mempty');
+    info.style.cssText = 'padding:0;font-size:8px;letter-spacing:.06em;color:#3f6b52';
+    info.textContent = '软限幅 · DC 阻断';
+    card.appendChild(info);
+    var meter = el('div', 'meter');
+    var bar = el('i');
+    meter.appendChild(bar);
+    card.appendChild(meter);
+    var row = el('div', 'knobrow');
+    makeKnob(row, 'voice.gain', { color: '#4ade80', label: '音量' });
+    card.appendChild(row);
+    host.appendChild(card);
+    S.meterBar = bar;
+  }
+
+  /* --- 键盘 --- */
+  var BASE = 48;
+  var NAME = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  function isBlack(m) { var n = ((m % 12) + 12) % 12; return n === 1 || n === 3 || n === 6 || n === 8 || n === 10; }
+  function noteName(m) { return NAME[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1); }
+
+  function buildKeyboard() {
+    var kbd = $('kbd');
+    kbd.innerHTML = '';
+    var start = BASE + S.octave * 12;
+    var notes = [];
+    for (var i = 0; i < 27; i++) notes.push(start + i);
+    var whites = notes.filter(function (m) { return !isBlack(m); });
+    var w = 100 / whites.length;
+    var wi = 0;
+    whites.forEach(function (m) {
+      var k = el('div', 'wkey');
+      k.style.left = (wi * w) + '%';
+      k.style.width = w + '%';
+      k.dataset.midi = String(m);
+      if (m % 12 === 0) k.textContent = noteName(m);
+      kbd.appendChild(k);
+      wi++;
+    });
+    notes.forEach(function (m) {
+      if (!isBlack(m)) return;
+      var idx = 0;
+      for (var j = 0; j < whites.length; j++) if (whites[j] < m) idx = j + 1;
+      var k = el('div', 'bkey');
+      k.style.left = 'calc(' + (idx * w) + '% - ' + (w * 0.3) + '%)';
+      k.style.width = (w * 0.6) + '%';
+      k.dataset.midi = String(m);
+      kbd.appendChild(k);
+    });
+    for (var h = 0; h < 27; h++) {
+      var kk = keyEl(start + h);
+      if (kk && S.held[start + h]) kk.classList.add('on');
+    }
+  }
+
+  function keyEl(midi) {
+    var kbd = $('kbd');
+    return kbd ? kbd.querySelector('[data-midi="' + midi + '"]') : null;
+  }
+
+  function press(midi, vel) {
+    if (S.held[midi]) return;
+    S.held[midi] = true;
+    var k = keyEl(midi);
+    if (k) k.classList.add('on');
+    ensureAudio();
+    post({ type: 'note', on: 1, midi: midi, vel: vel === undefined ? 0.9 : vel });
+  }
+  function release(midi) {
+    if (!S.held[midi]) return;
+    delete S.held[midi];
+    var k = keyEl(midi);
+    if (k) k.classList.remove('on');
+    if (S.hold) { S.sustained[midi] = true; return; }
+    post({ type: 'note', on: 0, midi: midi });
+  }
+  function releaseAll() {
+    for (var m in S.held) release(+m);
+    for (var s in S.sustained) post({ type: 'note', on: 0, midi: +s });
+    S.sustained = {};
+    if (S.hold) { S.hold = false; updateHold(); }
+  }
+  function updateHold() {
+    var b = $('holdBtn');
+    b.textContent = '保持 ' + (S.hold ? 'ON' : 'OFF');
+    b.style.color = S.hold ? '#4ade80' : '';
+  }
+
+  var ptr = null;
+  function bindKeyboard() {
+    var kbd = $('kbd');
+    kbd.addEventListener('pointerdown', function (e) {
+      var t = e.target.closest('.wkey,.bkey');
+      if (!t) return;
+      e.preventDefault();
+      if (!S.ctx) ensureAudio();
+      var midi = +t.dataset.midi;
+      ptr = { id: e.pointerId, midi: midi };
+      press(midi, 0.55 + Math.random() * 0.4);
+    });
+    window.addEventListener('pointermove', function (e) {
+      if (!ptr || e.pointerId !== ptr.id) return;
+      var t = document.elementFromPoint(e.clientX, e.clientY);
+      var k = t && t.closest ? t.closest('.wkey,.bkey') : null;
+      if (!k) return;
+      var midi = +k.dataset.midi;
+      if (midi !== ptr.midi) {
+        release(ptr.midi);
+        ptr.midi = midi;
+        press(midi, 0.8);
+      }
+    });
+    window.addEventListener('pointerup', function (e) {
+      if (!ptr || e.pointerId !== ptr.id) return;
+      release(ptr.midi);
+      ptr = null;
+    });
+    window.addEventListener('pointercancel', function (e) {
+      if (!ptr || e.pointerId !== ptr.id) return;
+      release(ptr.midi);
+      ptr = null;
+    });
+  }
+
+  var KEYMAP = {
+    KeyZ: 0, KeyS: 1, KeyX: 2, KeyD: 3, KeyC: 4, KeyV: 5, KeyG: 6, KeyB: 7, KeyH: 8, KeyN: 9, KeyJ: 10, KeyM: 11,
+    KeyQ: 12, Digit2: 13, KeyW: 14, Digit3: 15, KeyE: 16, KeyR: 17, Digit5: 18, KeyT: 19, Digit6: 20, KeyY: 21, Digit7: 22, KeyU: 23,
+    KeyI: 24, Digit9: 25, KeyO: 26
+  };
+  function bindComputerKeys() {
+    window.addEventListener('keydown', function (e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+      if (e.code === 'ArrowUp') { S.octave = clamp(S.octave + 1, -2, 2); buildKeyboard(); e.preventDefault(); return; }
+      if (e.code === 'ArrowDown') { S.octave = clamp(S.octave - 1, -2, 2); buildKeyboard(); e.preventDefault(); return; }
+      if (e.code === 'Space') { e.preventDefault(); releaseAll(); return; }
+      var off = KEYMAP[e.code];
+      if (off === undefined) return;
+      e.preventDefault();
+      if (e.repeat) return;
+      press(BASE + S.octave * 12 + off, 0.9);
+    });
+    window.addEventListener('keyup', function (e) {
+      var off = KEYMAP[e.code];
+      if (off === undefined) return;
+      release(BASE + S.octave * 12 + off);
+    });
+    window.addEventListener('blur', releaseAll);
+  }
+
+  /* --- MIDI（含 M-VAVE FM-1 控制器映射） --- */
+  var FM1_ENC = { 20: 'flt.cut', 21: 'flt.res', 22: 'gen0.cut', 23: 'gen0.res', 24: 'macro.val', 25: 'voice.gain', 26: 'fx2.mix' };
+  var FM1_BTN = ['上一个音色', '下一个音色', '静音', '保持', '初始化', '随机', '试听', '全局滤波', 'FX1', 'FX2', 'FX3', 'FX4', 'FX5', '—'];
+
+  function fm1Encoder(cc, v) {
+    var id = FM1_ENC[cc];
+    if (!id || !P[id]) return;
+    var d = P[id];
+    var delta = v - 64;
+    if (!delta) return;
+    var n = PLANT.toNorm(d, S.patch[id]) + delta / 64 * 0.045;
+    setParam(id, valueFromNorm(d, n));
+  }
+
+  function fm1Button(idx) {
+    if (idx === 0) loadPreset(S.preset - 1);
+    else if (idx === 1) loadPreset(S.preset + 1);
+    else if (idx === 2) { releaseAll(); post({ type: 'panic' }); }
+    else if (idx === 3) { S.hold = !S.hold; updateHold(); }
+    else if (idx === 4) loadPreset(0);
+    else if (idx === 5) randomPatch();
+    else if (idx === 6) audition();
+    else if (idx === 7) setParam('flt.on', Math.round(S.patch['flt.on']) ? 0 : 1);
+    else if (idx >= 8 && idx <= 12) {
+      var n = idx - 8;
+      setParam('fx' + n + '.on', Math.round(S.patch['fx' + n + '.on']) ? 0 : 1);
+    }
+    if (idx < 13) toast('FM-1 · ' + FM1_BTN[idx]);
+  }
+
+  function handleMidi(d, isFM1) {
+    var cmd = d[0] & 0xf0;
+    if (cmd === 0x90 && d[2] > 0) { press(d[1], d[2] / 127); return; }
+    if (cmd === 0x80 || (cmd === 0x90 && d[2] === 0)) { release(d[1]); return; }
+    if (cmd === 0xb0) {
+      var cc = d[1], v = d[2];
+      if (cc === 1) { post({ type: 'mw', v: v / 127 }); return; }
+      if (cc === 64) { if (v >= 64) { S.hold = true; updateHold(); } else { S.hold = false; updateHold(); } return; }
+      if (isFM1) {
+        if (cc >= 20 && cc <= 26) { fm1Encoder(cc, v); return; }
+        if (cc >= 40 && cc <= 53) { if (v > 0) fm1Button(cc - 40); return; }
+      }
+      return;
+    }
+    if (cmd === 0xd0) { post({ type: 'at', v: d[1] / 127 }); return; }
+    if (cmd === 0xe0) { post({ type: 'bend', v: ((d[2] << 7 | d[1]) - 8192) / 8192 }); return; }
+  }
+
+  function bindMidi() {
+    if (!navigator.requestMIDIAccess) return;
+    navigator.requestMIDIAccess().then(function (access) {
+      function hook(input) {
+        var isFM1 = /fm[-\s]?1|m[-\s]?vave/i.test(input.name || '');
+        if (isFM1 && !S.device) {
+          S.device = input.name;
+          toast('FM-1 已连接，键盘和旋钮可用');
+        }
+        input.onmidimessage = function (msg) { handleMidi(msg.data, isFM1); };
+      }
+      access.inputs.forEach(hook);
+      access.onstatechange = function (e) {
+        if (e.port.type === 'input' && e.port.state === 'connected') hook(e.port);
+      };
+      var names = [];
+      access.inputs.forEach(function (i) {
+        names.push(i.name);
+        if (/fm[-\s]?1|m[-\s]?vave/i.test(i.name || '')) S.device = i.name;
+      });
+      if (names.length) toast('MIDI 输入：' + names.join(' / '));
+      if (S.device) toast('FM-1 已连接，键盘和旋钮可用');
+    }).catch(function () { });
+  }
+
+  /* --- 拖拽调制 --- */
+  function bindModDrag(tagEl, src) {
+    tagEl.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var ghost = $('dropMod');
+      var idx = PLANT.MOD_SOURCES.indexOf(src);
+      ghost.textContent = (PLANT.MOD_LABELS[idx] || src).toUpperCase();
+      ghost.style.display = 'block';
+      document.body.classList.add('mod-dragging');
+      document.querySelectorAll('.knob').forEach(function (k) { k.classList.add('target'); });
+      function move(ev) {
+        ghost.style.left = ev.clientX + 'px';
+        ghost.style.top = ev.clientY + 'px';
+      }
+      function up(ev) {
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        ghost.style.display = 'none';
+        document.body.classList.remove('mod-dragging');
+        document.querySelectorAll('.knob.target').forEach(function (k) { k.classList.remove('target'); });
+        var el2 = document.elementFromPoint(ev.clientX, ev.clientY);
+        var knobEl = el2 && el2.closest ? el2.closest('.knob') : null;
+        if (knobEl && knobEl.dataset.param) addMod(src, knobEl.dataset.param);
+        else toast('要拖到具体的旋钮上');
+      }
+      move(e);
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    });
+  }
+
+  function addMod(src, target) {
+    var d = P[target];
+    if (!d || d.slot < 0) { toast('「' + (d ? d.label : target) + '」不可调制'); return; }
+    var ex = S.mods.find(function (m) { return m.src === src && m.target === target; });
+    if (ex) ex.amt = clamp(ex.amt + 0.3, -1, 1);
+    else S.mods.push({ src: src, target: target, amt: 0.5 });
+    sendMods();
+    renderMatrix();
+    var idx = PLANT.MOD_SOURCES.indexOf(src);
+    toast((PLANT.MOD_LABELS[idx] || src) + ' → ' + d.label + (ex ? ' 加深' : ' 已接线'));
+    saveSoon();
+  }
+
+  /* --- 头部动作 --- */
+  function bindHeader() {
+    $('pPrev').addEventListener('click', function () { loadPreset(S.preset - 1); });
+    $('pNext').addEventListener('click', function () { loadPreset(S.preset + 1); });
+    $('pName').addEventListener('click', function (e) {
+      e.stopPropagation();
+      var list = $('presetList');
+      if (!list.children.length) {
+        PRESETS.forEach(function (p, i) {
+          var b = el('button');
+          b.appendChild(el('span', null, p.name));
+          b.appendChild(el('em', null, p.en));
+          b.addEventListener('click', function () {
+            loadPreset(i);
+            list.classList.remove('open');
+          });
+          list.appendChild(b);
+        });
+      }
+      list.classList.toggle('open');
+      updatePresetLabel();
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.preset')) $('presetList').classList.remove('open');
+    });
+
+    document.querySelectorAll('.acts button').forEach(function (b) {
+      b.addEventListener('click', function () { act(b.dataset.act); });
+    });
+    $('fileIn').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function () {
+        try {
+          var o = JSON.parse(r.result);
+          S.patch = Object.assign(PLANT.defaults(), o.params || {});
+          S.mods = o.mods || [];
+          S.patch.mods = S.mods;
+          S.preset = -1;
+          applyPatchUI();
+          sendPatch();
+          toast('已载入：' + (o.name || '用户音色'));
+        } catch (err) { toast('文件读取失败'); }
+      };
+      r.readAsText(f);
+      e.target.value = '';
+    });
+    $('octUp').addEventListener('click', function () { S.octave = clamp(S.octave + 1, -2, 2); buildKeyboard(); });
+    $('octDown').addEventListener('click', function () { S.octave = clamp(S.octave - 1, -2, 2); buildKeyboard(); });
+    $('holdBtn').addEventListener('click', function () {
+      S.hold = !S.hold;
+      updateHold();
+      if (!S.hold) {
+        for (var m in S.sustained) post({ type: 'note', on: 0, midi: +m });
+        S.sustained = {};
+      }
+    });
+  }
+
+  function act(a) {
+    if (a === 'init') { loadPreset(0); toast('已初始化'); }
+    else if (a === 'rand') { randomPatch(); }
+    else if (a === 'audition') { audition(); }
+    else if (a === 'save') { exportPatch(); }
+    else if (a === 'load') { $('fileIn').click(); }
+    else if (a === 'flash') { flash(); }
+    else if (a === 'panic') { releaseAll(); post({ type: 'panic' }); toast('全部静音'); }
+  }
+
+  var auditionTimers = [];
+  function audition() {
+    ensureAudio();
+    auditionTimers.forEach(clearTimeout);
+    auditionTimers = [];
+    var seq = [[0, 60], [0.22, 64], [0.44, 67], [0.66, 72], [0.88, 67]];
+    seq.forEach(function (n) {
+      auditionTimers.push(setTimeout(function () {
+        var midi = BASE + S.octave * 12 + (n[1] - 60);
+        press(midi, 0.92);
+        auditionTimers.push(setTimeout(function () { release(midi); }, 800));
+      }, n[0] * 1000));
+    });
+  }
+
+  function exportPatch() {
+    var p = PRESETS[S.preset] || { name: '用户音色', en: 'USER' };
+    var data = { format: 'plant1', version: PLANT.version, name: p.name, en: p.en, params: S.patch, mods: S.mods };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'plant1-' + (p.en || 'user').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.json';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+    toast('音色已导出');
+  }
+
+  var flashing = false;
+  function flash() {
+    if (flashing) return;
+    flashing = true;
+    ensureAudio();
+    var steps = ['USB 握手…', '校验固件…', '写入引擎…', '写入音色…', '重启设备…'];
+    var i = 0;
+    var timer = setInterval(function () {
+      $('sPreset').textContent = steps[i] || 'DONE';
+      $('sPreset').style.color = '#fbbf24';
+      i++;
+      if (i > steps.length) {
+        clearInterval(timer);
+        $('sPreset').style.color = '';
+        $('sPreset').textContent = (PRESETS[S.preset] || {}).en || 'USER';
+        toast('已写入 FM-1 · 拔出 USB 后重启生效');
+        flashing = false;
+      }
+    }, 220);
+  }
+
+  function randomPatch() {
+    var rnd = function (a, b) { return a + Math.random() * (b - a); };
+    var pick = function (arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+    var patch = PLANT.defaults();
+    patch['voice.unison'] = Math.round(rnd(1, 4));
+    patch['voice.detune'] = rnd(4, 40);
+    patch['voice.spread'] = rnd(0.2, 1);
+    patch['voice.gain'] = 0.85;
+    patch['env0.a'] = rnd(0.001, 1.2);
+    patch['env0.d'] = rnd(0.2, 2.5);
+    patch['env0.s'] = rnd(0, 0.85);
+    patch['env0.r'] = rnd(0.1, 2.2);
+    var mods = [];
+    var n = Math.random() < 0.5 ? 1 : 2;
+    for (var i = 0; i < n; i++) {
+      var t = pick([0, 0, 1, 2, 3]);
+      patch['gen' + i + '.on'] = 1;
+      patch['gen' + i + '.type'] = t;
+      patch['gen' + i + '.level'] = 0;
+      patch['gen' + i + '.pan'] = rnd(-0.6, 0.6);
+      patch['gen' + i + '.tune'] = pick([-12, 0, 0, 12]);
+      patch['gen' + i + '.cut'] = rnd(200, 12000);
+      patch['gen' + i + '.res'] = rnd(0, 0.6);
+      patch['gen' + i + '.ftype'] = Math.random() < 0.7 ? 1 : 0;
+      patch['gen' + i + '.wave'] = Math.floor(rnd(0, 4));
+      patch['gen' + i + '.pwm'] = rnd(0.2, 0.8);
+      patch['gen' + i + '.table'] = Math.floor(rnd(0, 6));
+      patch['gen' + i + '.morph'] = rnd(0, 1);
+      patch['gen' + i + '.ratio'] = pick([0.5, 1, 1.5, 2, 3, 3.5, 5, 7]);
+      patch['gen' + i + '.index'] = rnd(0, 6);
+      patch['gen' + i + '.color'] = rnd(0, 1);
+      mods.push({ src: 'env1', target: 'gen' + i + '.level', amt: rnd(0.5, 0.95) });
+    }
+    if (Math.random() < 0.6) mods.push({ src: 'env2', target: 'gen0.cut', amt: rnd(0.1, 0.5) });
+    if (Math.random() < 0.5) mods.push({ src: pick(['lfo1', 'lfo2']), target: 'gen1.pan', amt: rnd(0.1, 0.5) });
+    if (Math.random() < 0.5) mods.push({ src: 'chaos', target: 'gen0.pwm', amt: rnd(0.05, 0.3) });
+    patch['lfo0.rate'] = rnd(0.05, 1.5);
+    patch['lfo1.rate'] = rnd(0.05, 1.5);
+    patch['flt.on'] = Math.random() < 0.5 ? 1 : 0;
+    patch['flt.cut'] = rnd(500, 9000);
+    patch['flt.res'] = rnd(0, 0.4);
+    patch['env1.a'] = rnd(0.001, 1);
+    patch['env1.d'] = rnd(0.1, 1.5);
+    patch['env1.s'] = rnd(0, 0.7);
+    patch['env2.a'] = rnd(0.001, 0.6);
+    patch['env2.d'] = rnd(0.05, 0.8);
+    patch['env2.s'] = rnd(0, 0.4);
+    var fxs = [4, 5, 2, 0, 1];
+    for (var f = 0; f < 3; f++) {
+      patch['fx' + f + '.on'] = 1;
+      patch['fx' + f + '.type'] = fxs[f];
+      patch['fx' + f + '.p1'] = rnd(0.2, 0.8);
+      patch['fx' + f + '.p2'] = rnd(0.2, 0.7);
+      patch['fx' + f + '.p3'] = rnd(0.2, 0.7);
+      patch['fx' + f + '.mix'] = rnd(0.1, 0.4);
+    }
+    S.patch = patch;
+    S.mods = mods;
+    S.patch.mods = mods;
+    S.preset = -1;
+    applyPatchUI();
+    sendPatch();
+    toast('随机音色已生成');
+  }
+
+  /* --- 顶栏动画 --- */
+  function loop(now) {
+    var dt = (now - (loop.last || now)) / 1000;
+    loop.last = now;
+    for (var l = 0; l < 2; l++) {
+      lfoPhase[l] = (lfoPhase[l] + dt * lfoRate(l)) % 1;
+      if (S.lfoCv && S.lfoCv[l]) drawLfo(S.lfoCv[l], l);
+    }
+    drawScope();
+    if (S.meterBar) {
+      var m = clamp(S.meter * 2.6, 0, 1);
+      S.meterBar.style.width = (m * 100).toFixed(1) + '%';
+    }
+    $('sVoices').textContent = S.ready ? ((S.device ? 'FM-1 · ' : '') + S.voices + ' V') : '点击开启';
+    requestAnimationFrame(loop);
+  }
+
+  function drawScope() {
+    var cv = $('scope');
+    var c = cv.getContext('2d');
+    var w = cv.width, h = cv.height;
+    c.clearRect(0, 0, w, h);
+    c.strokeStyle = 'rgba(74,222,128,.16)';
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, h / 2); c.lineTo(w, h / 2); c.stroke();
+    c.strokeStyle = '#4ade80';
+    c.lineWidth = 2;
+    c.beginPath();
+    if (S.analyser) {
+      if (!S.scopeBuf || S.scopeBuf.length !== S.analyser.fftSize) S.scopeBuf = new Float32Array(S.analyser.fftSize);
+      var buf = S.scopeBuf;
+      S.analyser.getFloatTimeDomainData(buf);
+      for (var i = 0; i < w; i++) {
+        var v = buf[Math.floor(i / w * buf.length)] * 1.4;
+        var y = h / 2 - clamp(v, -1, 1) * (h / 2 - 3);
+        if (i === 0) c.moveTo(i, y); else c.lineTo(i, y);
+      }
+    } else {
+      c.moveTo(0, h / 2); c.lineTo(w, h / 2);
+    }
+    c.stroke();
+  }
+
+  /* --- 自检 API --- */
+  window.PLANT1 = {
+    version: PLANT.version,
+    params: Object.keys(P).length,
+    patch: function () { return JSON.parse(JSON.stringify({ params: S.patch, mods: S.mods })); },
+    presets: PRESETS.map(function (p) { return p.name; }),
+    addMod: addMod,
+    setParam: setParam,
+    press: press,
+    release: release,
+    status: function () {
+      return {
+        ready: S.ready,
+        state: S.ctx ? S.ctx.state : null,
+        mode: S.node ? (S.node.local ? 'script' : 'worklet') : null,
+        voices: S.voices,
+        meter: S.meter
+      };
+    },
+    offline: function (presetIndex, seconds, midi) {
+      var e = new PLANT.Engine(48000);
+      var p = PRESETS[presetIndex];
+      var patch = Object.assign(PLANT.defaults(), p.params, { mods: p.mods || [] });
+      e.setPatch(patch);
+      var t0 = performance.now();
+      var res = e.renderOffline(seconds || 2, [{ t: 0.02, on: true, midi: midi || 60, vel: 0.9 }]);
+      var L = res[0], R = res[1];
+      var peak = 0, sum = 0, nan = 0;
+      for (var i = 0; i < L.length; i++) {
+        var a = Math.max(Math.abs(L[i]), Math.abs(R[i]));
+        if (!isFinite(L[i]) || !isFinite(R[i])) nan++;
+        if (a > peak) peak = a;
+        sum += L[i] * L[i] + R[i] * R[i];
+      }
+      return { name: p.name, peak: peak, rms: Math.sqrt(sum / (L.length * 2)), nan: nan, ms: performance.now() - t0 };
+    }
+  };
+
+  /* --- 启动 --- */
+  buildVoice();
+  buildFilter();
+  buildGens();
+  buildMods();
+  buildFx();
+  buildKeyboard();
+  bindHeader();
+  bindKeyboard();
+  bindComputerKeys();
+  bindMidi();
+  renderMatrix();
+
+  if (loadLocal()) {
+    applyPatchUI();
+    toast('已恢复上次的音色');
+  } else {
+    loadPreset(0, true);
+  }
+  updateHold();
+  requestAnimationFrame(loop);
+
+  window.addEventListener('resize', function () { refreshAllKnobs(); });
+  ['pointerdown', 'keydown'].forEach(function (ev) {
+    var once = function () { ensureAudio(); window.removeEventListener(ev, once); };
+    window.addEventListener(ev, once);
+  });
+})();
+</script>
+</body>
+</html>
