@@ -118,8 +118,8 @@ footer a{color:#7f93a9;text-decoration:none}
   <div class="crumb">FLASH / 刷写固件</div>
   <h1>刷写 FM-1 固件</h1>
   <p class="lead">
-    在浏览器里把 <b>.fwsc</b> 固件包写进 M-VAVE FM-1：选包 → 校验 → 连接 → 写入 → 设备重启后自报身份确认。
-    大约一分钟，走的是 FM-1 自己的 USB-MIDI 升级协议（M-UPGRADE 兼容）。
+    打开页面就会自动拉取站上的 <b>PLANT-1 M1</b> 并校验 SHA-256；接上 FM-1、勾选确认、按下安装即可。
+    大约一分钟，走的是 FM-1 自己的 USB-MIDI 升级协议（M-UPGRADE 兼容），也可以展开换成你电脑上的 <b>.fwsc</b>。
   </p>
 
   <section class="card danger">
@@ -128,7 +128,7 @@ footer a{color:#7f93a9;text-decoration:none}
       <li><b>会覆盖</b> FM-1 当前的固件、工程、音色和采样。想留的东西先导出来。</li>
       <li>用桌面版 <b>Chrome 或 Edge</b>，USB <b>数据线</b>直连，关掉 DAW / MIDI-OX / 其它升级页（Windows 一次只让一个程序占用端口）。</li>
       <li>写入中途断了<b>不会变砖</b>：设备会停在更新加载器里，插回线再点一次「写入」即可续传。</li>
-      <li>上面第二个候选是 <b>PLANT-1 M0</b>：把浏览器版的引擎搬上真机的第一个里程碑，一个 FM 音色 + 包络 + 27 键。</li>
+      <li>默认装的是站上的 <b>PLANT-1 M1</b>；要刷别的固件（Golf / 原厂包）就展开「或使用电脑上的 .fwsc 文件」。</li>
     </ul>
   </section>
 
