@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M8",
-  "version": "0.9.0",
-  "product": "FM-1_9800",
-  "file": "plant1m8.fwsc",
+  "name": "PLANT-1 M9",
+  "version": "0.9.1",
+  "product": "FM-1_9900",
+  "file": "plant1m9.fwsc",
   "bytes": 616003,
-  "sha256": "af3ad2377a4a2b2986ae0fba32bfd79cef7e8d2c92eb0d6177b659cfd62eedc4",
+  "sha256": "fd4950c0b7bf9e6a8149e32695c46b351c3b21f69a3a77ca58bafc335e43e3e0",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44021851925",
-  "notes": "M8: the panel is wired to the sound — every button jumps to its page (a second press toggles), all seven encoders move something, reused voices keep their envelope and filter so they do not click, and the output is soft-saturated. Fixes the confusing buttons, the dead knobs and the pops."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44023968408",
+  "notes": "M9: audio headroom — the voice level was driving the output stage into its ceiling on every note (four generators summed at 0.8, then saturated), so a patch now lands around 0.3 instead of 3. Reverb feedback is capped and its input trimmed, the delay's feedback stays below unity, master gain glides, four voices instead of six, and the inner loop no longer calls exp2 or clamps per sample."
 }
