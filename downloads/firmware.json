@@ -1,11 +1,11 @@
 {
   "name": "PLANT-1 M10",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "product": "FM-1_1000",
   "file": "plant1m10.fwsc",
   "bytes": 616003,
-  "sha256": "b7332da9132d92c8e91b01982d1d6d4f8f7584481fecd3ac6a14be40b097d0d8",
+  "sha256": "f62beb73fa9af3ea677f05061ce9e6eeb860f1dd8defe7c4d532b653aa0c1a8a",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44033139379",
-  "notes": "M10.1: the chorus, delay and drive were the heaviest per-sample code (a sin per sample in the chorus, a fractional float tap in the delay, tanh in the drive). They now compute their taps once a block, read integer samples from the ring buffers, and the drive uses a rational soft clip. Same screen as 0.9.4."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44033634554",
+  "notes": "M10.2: the ENV page was drawing its release from 0 up to the sustain level (the curve was inverted), and its attack/decay x positions were computed before the clamps, so short attacks collapsed the whole shape. The graph now draws attack up, decay to sustain, a sustain hold, then release down to zero, with the segments clamped to the box."
 }
