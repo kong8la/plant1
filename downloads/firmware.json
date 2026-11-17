@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M21",
-  "version": "0.13.0",
-  "product": "FM-1_2100",
-  "file": "plant1m21.fwsc",
+  "name": "PLANT-1 M22",
+  "version": "0.13.1",
+  "product": "FM-1_2200",
+  "file": "plant1m22.fwsc",
   "bytes": 616003,
-  "sha256": "ec2f074e0c324f7882f017ff1902533350b331686ccdd19999b28b8e766280d5",
+  "sha256": "48083bd8a16e4afee728cfedc77c80347af7da9a892e9896af78f953011f7438",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44067990012",
-  "notes": "M21: the whole screen is one page — a 46 px header (name, patch, scope), a 144 px page, a 26 px strip naming the four knobs for that page (and changing with the page's sub-mode), and the tabs. The 2 x 2 slot grid lives only on GEN now, so no page repeats another. The encoder readout sits on the header's second line, never on the scope."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44069298790",
+  "notes": "M22: the first screen is the tree itself — no text. The crown sways more the higher it is, a cone of light breathes behind the trunk, pollen and sparkles drift, and only later do the name and the bobbing splash arrive. The encoder readout moved to the knob strip, so the preset name no longer flickers."
 }
