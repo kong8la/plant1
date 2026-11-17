@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M3",
-  "version": "0.4.0",
-  "product": "FM-1_9300",
-  "file": "plant1m3.fwsc",
+  "name": "PLANT-1 M4",
+  "version": "0.5.0",
+  "product": "FM-1_9400",
+  "file": "plant1m4.fwsc",
   "bytes": 616003,
-  "sha256": "34d4e06c6d26e755a178aefe555888c92aeb749ed20d79ee343551d34a15f293",
+  "sha256": "0e287cf78c5bd82303aea53624eb2a086d8271768bc1a3135e5d553addaa4271",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/43979035587",
-  "notes": "M3: a five-slot effect chain (drive, chorus, delay, reverb, compressor) with an FX page, four patch slots in flash, and per-preset effects. M2 gave presets, envelopes, an LFO and a screen that draws the sound."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44016959732",
+  "notes": "M4: a modulation matrix — four routes from ENV1, ENV2, LFO1, LFO2 or velocity to any slot's level, cutoff or pitch, with a MOD page and AMP/MOD, LFO1/LFO2 switches. Plus M3's five-slot effect chain, M2's presets and envelopes, M1's four generator slots."
 }
