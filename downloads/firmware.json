@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M6",
-  "version": "0.7.0",
-  "product": "FM-1_9600",
-  "file": "plant1m6.fwsc",
+  "name": "PLANT-1 M7",
+  "version": "0.8.0",
+  "product": "FM-1_9700",
+  "file": "plant1m7.fwsc",
   "bytes": 616003,
-  "sha256": "0ef3015b0bc8012cb12893e7f25aa124b7be64e55338ebd862021181af352a6d",
+  "sha256": "cf57f541bc337bb4d19fb02e3cdba34085ab4d68e7a453906fd960a7b68228ee",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44018714470",
-  "notes": "M6: thirty-two presets in four banks — BELLS, BASS, LEAD, PADS. PATCH page: K1 steps a preset, K3 jumps a bank, K2 picks a flash slot, SAVE stores. Built on M5's arpeggiator, M4's modulation matrix, M3's effects, M2's envelopes and M1's four generator slots."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44020408152",
+  "notes": "M7: a sixteen-step sequencer — per step note above the held key, velocity, gate and on/off; SEQ runs it, PLAY taps tempo. Built on M6's 32 presets, M5's arpeggiator, M4's modulation matrix, M3's effects and M1's four generator slots."
 }
