@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M10",
-  "version": "0.9.6",
-  "product": "FM-1_1000",
-  "file": "plant1m10.fwsc",
+  "name": "PLANT-1 M11",
+  "version": "0.9.7",
+  "product": "FM-1_1100",
+  "file": "plant1m11.fwsc",
   "bytes": 616003,
-  "sha256": "f62beb73fa9af3ea677f05061ce9e6eeb860f1dd8defe7c4d532b653aa0c1a8a",
+  "sha256": "a0a7ec3de518e35ffcdecf1bd15a6c2ad783886b42bf0587c7c568356a9ff4f2",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44033634554",
-  "notes": "M10.2: the ENV page was drawing its release from 0 up to the sustain level (the curve was inverted), and its attack/decay x positions were computed before the clamps, so short attacks collapsed the whole shape. The graph now draws attack up, decay to sustain, a sustain hold, then release down to zero, with the segments clamped to the box."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44034605776",
+  "notes": "M11: the panel follows the scheme JIANT FM documents — a section button takes you there, a second press walks that section's groups, a hold runs its action (HOME/PLAY = panic, SAVE = store, FX = toggle effect, GLO = toggle route). SELECT walks pages, ALGORITHM picks the slot, PRESETS always picks the sound. Includes the M10 screen and the 0.9.6 envelope fix."
 }
