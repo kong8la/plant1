@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M15",
-  "version": "0.10.3",
-  "product": "FM-1_1500",
-  "file": "plant1m15.fwsc",
+  "name": "PLANT-1 M16",
+  "version": "0.11.0",
+  "product": "FM-1_1600",
+  "file": "plant1m16.fwsc",
   "bytes": 616003,
-  "sha256": "0ed91216c974532c88ceccf3894a78a1be97173d63c217befef5841c8dcc9d4a",
+  "sha256": "f159457b2a3f00d466812c15b6a65fc236ee76bbefc78128dac559598c304dea",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44060470038",
-  "notes": "M15.1: the platform's cream 'PLANT1M15' first screen is replaced by APP_SPLASH — the ground and a seed — so the tree is the first thing on screen. The tree grew roots, pollen, a soft halo, deeper branches and a ring progress; PLANT-1 and the bobbing 'grows on you' follow."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44061692660",
+  "notes": "M16: the GEN page is a 2 x 2 grid of module cards (Phase Plant style) — each slot shows its number, engine, filter, waveform, on/off, a six-block level and its transpose; the selected card takes the accent. The page band below holds the selected card's values."
 }
