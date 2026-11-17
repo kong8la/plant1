@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M9",
-  "version": "0.9.3",
-  "product": "FM-1_9900",
-  "file": "plant1m9.fwsc",
+  "name": "PLANT-1 M10",
+  "version": "0.9.4",
+  "product": "FM-1_1000",
+  "file": "plant1m10.fwsc",
   "bytes": 616003,
-  "sha256": "5eb8bd43c0291cfe31729c6a9c988f763719577e6e8fc4434a510c67199379f8",
+  "sha256": "3dc91cafc28525e3204038bf7221d469147e0a68e1eb55a05caa9a275c39f35a",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44026902078",
-  "notes": "M9.3: each voice is normalised by the sum of its generator levels, so a four-slot patch is not three times hotter than a one-slot patch; a limiter (instant clamp, slow recovery) sits before the soft clip; the compressor's make-up is halved. Fixes the few presets that still distorted."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44028253515",
+  "notes": "M10: a new screen — an oscilloscope of the output with a peak meter in the header, the four slots as cards with segmented level meters, a lit pill on the current page tab, and a bright bar that sweeps across the page when it changes. Same engine as 0.9.3 (per-voice normalisation and limiter)."
 }
