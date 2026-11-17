@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M14",
-  "version": "0.10.1",
-  "product": "FM-1_1400",
-  "file": "plant1m14.fwsc",
+  "name": "PLANT-1 M15",
+  "version": "0.10.2",
+  "product": "FM-1_1500",
+  "file": "plant1m15.fwsc",
   "bytes": 616003,
-  "sha256": "34f2f1986cc868b39b7fad4e866eb293fbc2b2939777679fbdb2ee60df1f1013",
+  "sha256": "e6aeda06b3969c6b3ea33c31e83ec49a07974864fe715e6c7e91259648d81bcd",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44040529203",
-  "notes": "M14: a GROOVE mode on the MOTIF page — sequence length 1-16, swing 0-60% on every second step, key transposition to any of the twelve keys, and EVOLVE (the pattern mutates itself every two bars while it plays). Mutate now stays inside the chosen scale. REC cycles STYLE / EUCLID / GROOVE."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44058310124",
+  "notes": "M15: a boot animation after shrub.audio — a tree grows out of the ground, then PLANT-1, then a Minecraft-style splash line that bobs ('grows on you'); any key skips it. The running screen gained soft cards around each generator slot and the page."
 }
