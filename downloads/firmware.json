@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M12",
-  "version": "0.9.9",
-  "product": "FM-1_1200",
-  "file": "plant1m12.fwsc",
+  "name": "PLANT-1 M13",
+  "version": "0.10.0",
+  "product": "FM-1_1300",
+  "file": "plant1m13.fwsc",
   "bytes": 616003,
-  "sha256": "db9eb23a7654f8095d730388b70f0b67226146084521c2951570184c171c0340",
+  "sha256": "5d5a58ff27837e62eb57fd85e5018fd5ebd20d273afc08742a3ed8654a0da2d7",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44036288477",
-  "notes": "M12: a motif generator after JIANT's dice — six styles (techno, house, acid, breaks, ambient, trance), density 1-16, four scales and a 0-9999 seed generate the sixteen-step sequence; K4 on the MOTIF page rolls it. Every K knob now prints its name while it turns (K3 PAN, K3 SCALE...), so no knob is a mystery."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44037231765",
+  "notes": "M13: EUCLID (hits over 2-16 steps with rotation, REC switches STYLE/EUCLID on the MOTIF page), MUTATE (hold GLO on MOTIF: a variation that keeps the rhythm), CHORD (hold REC on SEQ: every step plays root + third + fifth from the scale). Plus M12's motif generator and the K-knob readout."
 }
