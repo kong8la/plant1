@@ -1,11 +1,11 @@
 {
   "name": "PLANT-1 M9",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "product": "FM-1_9900",
   "file": "plant1m9.fwsc",
   "bytes": 616003,
-  "sha256": "fd4950c0b7bf9e6a8149e32695c46b351c3b21f69a3a77ca58bafc335e43e3e0",
+  "sha256": "b9aff4df18cabe8973aa6cb529d15bdd85f6b6e9830a941866e0ca331ff6ae59",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44023968408",
-  "notes": "M9: audio headroom — the voice level was driving the output stage into its ceiling on every note (four generators summed at 0.8, then saturated), so a patch now lands around 0.3 instead of 3. Reverb feedback is capped and its input trimmed, the delay's feedback stays below unity, master gain glides, four voices instead of six, and the inner loop no longer calls exp2 or clamps per sample."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44024588594",
+  "notes": "M9.2: the header now shows the patch number and the slot (P 2/32 G 1) and turning PRESET / SELECT / ALGO briefly prints what it did, so the fixed encoders explain themselves. Includes the 0.9.1 audio headroom fix."
 }
