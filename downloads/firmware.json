@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M16",
-  "version": "0.11.0",
-  "product": "FM-1_1600",
-  "file": "plant1m16.fwsc",
+  "name": "PLANT-1 M17",
+  "version": "0.11.1",
+  "product": "FM-1_1700",
+  "file": "plant1m17.fwsc",
   "bytes": 616003,
-  "sha256": "f159457b2a3f00d466812c15b6a65fc236ee76bbefc78128dac559598c304dea",
+  "sha256": "1a065b9bf175d8eb99e14141ff19073a6f15140a98008e9a6ad86bad2665d00e",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44061692660",
-  "notes": "M16: the GEN page is a 2 x 2 grid of module cards (Phase Plant style) — each slot shows its number, engine, filter, waveform, on/off, a six-block level and its transpose; the selected card takes the accent. The page band below holds the selected card's values."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44062889842",
+  "notes": "M17: ENV, LFO and FX use the same card language as the generator grid — a graph card with its title, value cards (A/D/S/R, RATE/AMOUNT/TARGET), and the FX chain as five numbered row cards with a parameter card underneath."
 }
