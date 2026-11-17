@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M4",
-  "version": "0.5.0",
-  "product": "FM-1_9400",
-  "file": "plant1m4.fwsc",
+  "name": "PLANT-1 M5",
+  "version": "0.6.0",
+  "product": "FM-1_9500",
+  "file": "plant1m5.fwsc",
   "bytes": 616003,
-  "sha256": "0e287cf78c5bd82303aea53624eb2a086d8271768bc1a3135e5d553addaa4271",
+  "sha256": "da6df9ebf25a79112daa1d4f5daf482d191629b9069690428096ed58e3f53fd5",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44016959732",
-  "notes": "M4: a modulation matrix — four routes from ENV1, ENV2, LFO1, LFO2 or velocity to any slot's level, cutoff or pitch, with a MOD page and AMP/MOD, LFO1/LFO2 switches. Plus M3's five-slot effect chain, M2's presets and envelopes, M1's four generator slots."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44018087994",
+  "notes": "M5: an arpeggiator — UP / DOWN / UPDN / RAND, rates 1/4 to 1/16T, 1-3 octaves, gate, tap tempo on SEQ. With M4's modulation matrix, M3's effect chain, M2's presets and envelopes, and M1's four generator slots."
 }
