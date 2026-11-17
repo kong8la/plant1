@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M24",
-  "version": "0.14.1",
-  "product": "FM-1_2400",
-  "file": "plant1m24.fwsc",
+  "name": "PLANT-1 M25",
+  "version": "0.14.2",
+  "product": "FM-1_2500",
+  "file": "plant1m25.fwsc",
   "bytes": 616003,
-  "sha256": "6baee533740ce91b749c5a7be607c7d89eea45ca9ad50cd78855e0f95886a37d",
+  "sha256": "6658b26af58d4bcbeb377f9a0db42a476d0d617e5d9abd248cfb5921a34811e7",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44071768440",
-  "notes": "M24: every generator now has its own lane effect (drive, crush or fold) applied per voice — Phase Plant's polyphonic effect lanes in miniature. On the GEN page, hold SEL to cycle PARAMS / CROSS FM / LANE."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44075557407",
+  "notes": "M25: the platform's blue-name splash is gone again (APP_SPLASH was lost in an earlier copy) — the tree is the first frame. SEL is now the motif key: tap rolls a new motif and jumps to MOTIF, hold changes style. The FX bus is split into Phase Plant's three lanes A (slots 1-2), B (slots 3-4), C (slot 5); tap REC on FX toggles serial A>B>C and parallel (A+B)>C. GEN's three views moved to a held EDIT."
 }
