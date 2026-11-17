@@ -448,9 +448,12 @@ $('btnWrite').addEventListener('click', async () => {
   }
 
   let updater;
-  try {
+  const makeUpdater = async (paceMs) => {
     const access = await getAccess();
-    updater = new Updater(access, (m) => log(m), { discoveryWaitMs: 800 });
+    return new Updater(access, (m) => log(m), { discoveryWaitMs: 800, paceMs });
+  };
+  try {
+    updater = await makeUpdater(0);          /* 0: reply to every block as fast as the device asks */
   } catch (err) {
     const denied = /permission|denied|not granted/i.test(err.message || '');
     $('resultMsg').className = 'msg show err';
@@ -463,8 +466,10 @@ $('btnWrite').addEventListener('click', async () => {
     return;
   }
 
+  let t0 = 0;
   const step = (kind, n, addr) => {
     const text = STEP_TEXT[kind] || kind;
+    if (kind === 'write' && !t0) t0 = Date.now();
     if (kind === 'verify') {
       $('bar').classList.add('indet');
       $('writeStatus').textContent = text + '… ' + n + ' 块';
@@ -472,7 +477,11 @@ $('btnWrite').addEventListener('click', async () => {
       $('bar').classList.remove('indet');
       const pct = Math.max(0, Math.min(100, (addr / total) * 100));
       $('barFill').style.width = pct.toFixed(1) + '%';
-      $('writeStatus').textContent = text + '… ' + pct.toFixed(0) + '%';
+      const secs = t0 ? (Date.now() - t0) / 1000 : 0;
+      const kbps = secs > 0.2 ? (addr / 1024 / secs) : 0;
+      const left = kbps > 0 ? Math.max(0, (total - addr) / 1024 / kbps) : 0;
+      $('writeStatus').textContent = text + '… ' + pct.toFixed(0) + '%' +
+        (kbps ? ' · ' + kbps.toFixed(0) + ' KB/s · 还剩 ' + left.toFixed(0) + 's' : '');
     } else if (kind === 'done') {
       $('bar').classList.remove('indet');
       $('barFill').style.width = '100%';
@@ -483,8 +492,19 @@ $('btnWrite').addEventListener('click', async () => {
     if (kind !== 'write' && kind !== 'verify') log('阶段：' + text + (n ? ' · ' + n : ''));
   };
 
+  let identity;
   try {
-    const identity = await updater.install(state.image, state.product, step);
+    try {
+      identity = await updater.install(state.image, state.product, step);
+    } catch (e) {
+      const retryable = e && (e.code === 'stopped' || e.code === 'lost' || e.code === 'noloader');
+      if (!retryable) throw e;
+      log('快速写入失败（' + (e.code || e.message) + '），改用慢速重试一次…', 'w');
+      await new Promise((r) => setTimeout(r, 800));
+      t0 = 0;
+      updater = await makeUpdater(8);
+      identity = await updater.install(state.image, state.product, step);
+    }
     $('resultMsg').className = 'msg show';
     $('resultMsg').innerHTML = '刷写完成，设备现在运行 <b>' + identity + '</b>。' +
       '如果它没自动亮起来，拔插一次 USB 或按一下电源键。';

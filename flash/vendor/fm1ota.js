@@ -157,6 +157,7 @@ export class Updater {
     this.access = access;
     this.log = log || (() => {});
     this.sleep = options.sleep || sleep;
+    this.paceMs = options.paceMs == null ? 0 : options.paceMs;   /* PLANT-1: pace between block replies (was a fixed 10 ms) */
     this.discoveryWaitMs = options.discoveryWaitMs ?? 1000;
   }
 
@@ -254,7 +255,7 @@ export class Updater {
         continue;
       }
       if (!r.len || r.len > MAXDATA || r.addr + r.len > image.length) throw fail("badreq", `bad request ${r.addr.toString(16)}+${r.len}`);
-      await this.sleep(10);
+      if (this.paceMs) await this.sleep(this.paceMs);
       if (!link.send(response(r.addr, Array.from(image.subarray(r.addr, r.addr + r.len)), r.fl))) {
         return { served, finished: false, lost: true };
       }
@@ -281,12 +282,12 @@ export class Updater {
     let s1;
     try {
       if (!dev.link.send(UPGRADE)) throw fail("lost", "USB disconnected before update");
-      await this.sleep(2000);
+      await this.sleep(1200);
       s1 = await this.serve(dev.link, image, 0xE0000000, 8000, (n, addr) => step("verify", n, addr));
     } finally { await dev.link.close(); }
     if (!s1.finished) throw fail(s1.lost ? "lost" : "stopped", `the device ${s1.lost ? "was disconnected" : "stopped"} after ${s1.served} requests: nothing was written`);
     step("loader");
-    await this.sleep(3000);
+    await this.sleep(1200);
     const ota = await this.waitFor(IS_OTA, 30000);
     if (!ota) throw fail("noloader", "the update loader did not appear. Replug the USB cable and press Install again: the device stays in update mode until it is finished.");
     const s2 = await this.write(ota, image, step);
@@ -296,7 +297,7 @@ export class Updater {
 
   async verify(product, step = () => {}) {
     step("reboot");
-    await this.sleep(3000);
+    await this.sleep(1500);
     const back = await this.waitFor((id) => !IS_OTA(id), 40000);
     if (!back) throw fail("noreturn", "the device did not come back: power-cycle it");
     await back.link.close();
@@ -330,7 +331,7 @@ export class Updater {
     try {
       if (ota.id.model !== "ota-FM-1") throw fail("model", "The update loader is not for FM-1");
       if (!ota.link.send(UPGRADE)) throw fail("lost", "USB disconnected before write");
-      await this.sleep(2000);
+      await this.sleep(1200);
       return await this.serve(ota.link, image, 0xF0000000, 180000, (n, addr) => step("write", n, addr));
     } finally { await ota.link.close(); }
   }
