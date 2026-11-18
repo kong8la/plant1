@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M26",
-  "version": "0.15.0",
-  "product": "FM-1_2600",
-  "file": "plant1m26.fwsc",
+  "name": "PLANT-1 M27",
+  "version": "0.16.0",
+  "product": "FM-1_2700",
+  "file": "plant1m27.fwsc",
   "bytes": 616003,
-  "sha256": "88e4851bdc008051d2d152ea4a739faa44aa06a070026e8091d9629001ec25f2",
+  "sha256": "b80838126d3e03558abb3207adc5366bfea190cf72206f977418488a548936f5",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44266219789",
-  "notes": "M26: the motion lane. Hold REC on the MACRO page and turn the four knobs; their moves become a four-bar lane that plays back by itself, interpolating between up to 64 keyframes. The macros still route wherever you point them, so one recorded gesture can sweep the whole patch."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44267768238",
+  "notes": "M27: one seed, one plant — SEL grows both the timbre and the motif from the same seed (a base preset, then scale, genre, density and a few routes all derived from it). And A/B: on PATCH hold PLAY to store A, hold REC to store B, then turn K4 to morph every parameter between the two, discrete fields switching at the middle."
 }
