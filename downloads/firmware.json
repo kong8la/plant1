@@ -1,11 +1,11 @@
 {
-  "name": "PLANT-1 M25",
-  "version": "0.14.2",
-  "product": "FM-1_2500",
-  "file": "plant1m25.fwsc",
+  "name": "PLANT-1 M26",
+  "version": "0.15.0",
+  "product": "FM-1_2600",
+  "file": "plant1m26.fwsc",
   "bytes": 616003,
-  "sha256": "6658b26af58d4bcbeb377f9a0db42a476d0d617e5d9abd248cfb5921a34811e7",
+  "sha256": "88e4851bdc008051d2d152ea4a739faa44aa06a070026e8091d9629001ec25f2",
   "source": "https://github.com/kong8la/plant1-fw",
-  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44075557407",
-  "notes": "M25: the platform's blue-name splash is gone again (APP_SPLASH was lost in an earlier copy) — the tree is the first frame. SEL is now the motif key: tap rolls a new motif and jumps to MOTIF, hold changes style. The FX bus is split into Phase Plant's three lanes A (slots 1-2), B (slots 3-4), C (slot 5); tap REC on FX toggles serial A>B>C and parallel (A+B)>C. GEN's three views moved to a held EDIT."
+  "build": "https://github.com/kong8la/plant1-fw/actions/runs/44266219789",
+  "notes": "M26: the motion lane. Hold REC on the MACRO page and turn the four knobs; their moves become a four-bar lane that plays back by itself, interpolating between up to 64 keyframes. The macros still route wherever you point them, so one recorded gesture can sweep the whole patch."
 }
